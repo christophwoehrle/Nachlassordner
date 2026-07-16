@@ -203,6 +203,10 @@
   .form-hint.beglaubigung b{color:var(--amber)}
   .form-hint.beurkundung{border-left-color:var(--danger);background:color-mix(in srgb,var(--danger) 9%,var(--panel))}
   .form-hint.beurkundung b{color:var(--danger)}
+  .vm-type-select{font-family:'Inter',sans-serif;font-size:.9rem;color:var(--field-ink);background:var(--field-bg);
+    border:1px solid var(--field-line);border-radius:3px;padding:9px 11px;width:100%;cursor:pointer}
+  .vm-type-select:focus{outline:none;border-color:var(--forest);box-shadow:0 0 0 2px var(--glow-soft)}
+  .vm-type-free{margin-top:7px}
 
   /* ---------- Fields ---------- */
   .field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px 20px}
@@ -1864,6 +1868,77 @@ function printAccessDoc(){
 
 
 
+/* ---------- Gängige Vollmachtsarten (gruppiert, logisch sortiert) ---------- */
+const VOLLMACHT_TYPES = [
+  {group:'Vorsorge & Gesundheit', items:[
+    'Vorsorgevollmacht',
+    'Gesundheitsvollmacht',
+    'Betreuungsverfügung',
+    'Vollmacht für medizinische Behandlung'
+  ]},
+  {group:'Bank & Finanzen', items:[
+    'Bankvollmacht / Kontovollmacht',
+    'Konto- und Depotvollmacht',
+    'Wertpapier-/Depotvollmacht',
+    'Vollmacht über den Tod hinaus (transmortal)'
+  ]},
+  {group:'Immobilien & Vermögen', items:[
+    'Immobilienvollmacht',
+    'Grundstücksvollmacht',
+    'Vollmacht zur Grundschuldbestellung',
+    'Vermögensverwaltungsvollmacht'
+  ]},
+  {group:'Behörden & Recht', items:[
+    'Behördenvollmacht',
+    'Vollmacht für Rentenangelegenheiten',
+    'Vollmacht für Versicherungsangelegenheiten',
+    'Prozessvollmacht'
+  ]},
+  {group:'Allgemein & Digitales', items:[
+    'Generalvollmacht',
+    'Handlungsvollmacht (Unternehmen)',
+    'Postvollmacht',
+    'Vollmacht für digitalen Nachlass',
+    'Sorgerechtsvollmacht (Kinderbetreuung)'
+  ]}
+];
+
+/* Baut das gruppierte Dropdown für die „Art der Vollmacht" mit Freitext-Fallback.
+   Das Freitext-Feld trägt data-col="typ" und bleibt die einzige Datenquelle. */
+function buildPowerTypeField(f,vals){
+  const val=(vals.typ||'').toString();
+  const sel=el('select','vm-type-select');
+  sel.setAttribute('aria-label','Art der Vollmacht wählen');
+  const ph=el('option',null,'– Art wählen –');ph.value='';sel.appendChild(ph);
+  let known=false;
+  VOLLMACHT_TYPES.forEach(g=>{
+    const og=document.createElement('optgroup');og.label=g.group;
+    g.items.forEach(name=>{
+      const o=el('option',null,name);o.value=name;
+      if(name===val){o.selected=true;known=true;}
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  const other=el('option',null,'Andere (freie Eingabe) …');other.value='__other__';sel.appendChild(other);
+
+  const inp=el('input','vm-type-free');inp.type='text';inp.dataset.col='typ';inp.value=val;
+  inp.placeholder='eigene Bezeichnung der Vollmacht';inp.oninput=persist;
+
+  const isOther = val && !known;
+  if(isOther){ sel.value='__other__'; inp.style.display=''; }
+  else { inp.style.display='none'; }
+
+  sel.onchange=()=>{
+    if(sel.value==='__other__'){ inp.value=''; inp.style.display=''; inp.focus(); }
+    else { inp.value=sel.value; inp.style.display='none'; }
+    inp.dispatchEvent(new Event('input',{bubbles:true}));  // persist + Hinweis aktualisieren
+  };
+
+  f.appendChild(sel);
+  f.appendChild(inp);
+}
+
 /* ---------- Formerfordernis je Vollmacht (allgemeine Info, keine Rechtsberatung) ---------- */
 function formRequirement(typ,umfang){
   const s=((typ||'')+' '+(umfang||'')).toLowerCase();
@@ -1901,7 +1976,9 @@ function buildRow(sec,vals){
   sec.repeat.cols.forEach(c=>{
     const f=el('div','field');
     f.appendChild(el('label',null,c.l));
-    if(c.pw){
+    if(sec.repeat.power && c.k==='typ'){
+      buildPowerTypeField(f,vals);   // gruppiertes Dropdown + Freitext
+    }else if(c.pw){
       const pw=el('div','pw-wrap');
       const inp=el('input');inp.type='password';inp.dataset.col=c.k;inp.value=vals[c.k]||'';inp.oninput=persist;inp.placeholder=c.ph||'';
       const tog=el('button','pw-toggle','ZEIGEN');tog.type='button';
