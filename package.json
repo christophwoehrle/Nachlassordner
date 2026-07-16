@@ -1,0 +1,10 @@
+{
+  "name": "notfallordner",
+  "version": "1.0.0",
+  "description": "Digitaler Notfallordner - offline, verschluesselt, Single-File",
+  "private": true,
+  "scripts": {
+    "test": "node tests/smoke.test.js",
+    "serve": "python3 -m http.server 8000"
+  }
+}
