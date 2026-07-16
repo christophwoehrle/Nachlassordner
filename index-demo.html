@@ -1,0 +1,2193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOTFALLORDNER · Familienarchiv</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root{
+    /* Cloud Pearl – helle, freundliche Flächen */
+    --backdrop:#E9EFEE;
+    --bg:#EEF2F1;
+    --bg-deep:#E4ECEA;
+    --panel:#FBFCFB;
+    --panel-2:#F2F5F4;
+    /* dunkle, weiche Schrift (kein Schwarz) */
+    --ink:#223338;
+    --ink-soft:#566E74;
+    /* Arctic Teal – Akzent */
+    --forest:#276E75;
+    --forest-bright:#3FA0AA;
+    --forest-glow:#7FD0D2;
+    --heading:#22656D;
+    --line:#CBD9D7;
+    --line-soft:#DCE6E4;
+    /* zurückhaltende, freundliche Funktionsakzente */
+    --amber:#C6844F;
+    --danger:#C1594A;
+    /* weiche Teal-Schatten statt Neon-Glow */
+    --glow:rgba(46,129,137,.20);
+    --glow-soft:rgba(46,129,137,.10);
+    /* Eingabefelder – klare, helle Pearl-Felder mit dunkler Schrift */
+    --field-bg:#FFFFFF;
+    --field-ink:#223338;
+    --field-line:#BFD2CF;
+    --field-placeholder:#728888;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+
+  html{scroll-behavior:smooth}
+
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--backdrop);
+    color:var(--ink);
+    line-height:1.55;
+    min-height:100vh;
+    background-image:
+      linear-gradient(rgba(46,129,137,.06) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(46,129,137,.06) 1px,transparent 1px);
+    background-size:44px 44px;
+    background-position:center;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(ellipse at 50% -10%,rgba(63,160,170,.10),transparent 55%),
+      radial-gradient(ellipse at 90% 100%,rgba(63,160,170,.07),transparent 50%);
+  }
+
+  /* ---------- HUD frame ---------- */
+  .hud-corner{position:fixed;width:46px;height:46px;border:2px solid var(--forest);z-index:50;pointer-events:none;opacity:1;box-shadow:0 0 10px var(--glow-soft),inset 0 0 6px var(--glow-soft)}
+  .hud-corner.tl{top:14px;left:14px;border-right:0;border-bottom:0}
+  .hud-corner.tr{top:14px;right:14px;border-left:0;border-bottom:0}
+  .hud-corner.bl{bottom:14px;left:14px;border-right:0;border-top:0}
+  .hud-corner.br{bottom:14px;right:14px;border-left:0;border-top:0}
+
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:42px 28px 90px}
+
+  /* ---------- Header ---------- */
+  header{
+    border:1px solid var(--line);
+    background:linear-gradient(135deg,var(--panel) 0%,var(--panel-2) 100%);
+    border-radius:14px;
+    padding:30px 34px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:0 8px 24px rgba(40,80,86,.10);
+  }
+  header::after{
+    content:"";position:absolute;top:0;left:0;right:0;height:4px;
+    background:linear-gradient(90deg,var(--forest),var(--forest-glow),transparent);
+  }
+  .sys-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:18px}
+  .brand{display:flex;align-items:center;gap:18px}
+  .reactor{
+    width:58px;height:58px;flex:none;position:relative;
+    display:grid;place-items:center;
+  }
+  .reactor .ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--forest);opacity:.9;box-shadow:0 0 10px var(--glow-soft),inset 0 0 8px var(--glow-soft)}
+  .reactor .ring.r2{inset:8px;border-style:dashed;opacity:.6;animation:spin 14s linear infinite}
+  .reactor .core{width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,var(--forest-glow),var(--forest));box-shadow:0 0 18px var(--forest-glow),0 0 34px var(--glow)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(prefers-reduced-motion:reduce){.reactor .ring.r2{animation:none}}
+
+  /* ---------- Safe-Drehschloss ---------- */
+  .safedial{width:62px;height:62px;flex:none;cursor:pointer;position:relative;border-radius:50%;outline:none;transition:filter .2s}
+  .safedial:focus-visible{box-shadow:0 0 0 3px var(--glow-soft)}
+  .safedial:hover{filter:brightness(1.08)}
+  .dial-svg{width:100%;height:100%;display:block;overflow:visible}
+  .safedial .bezel{fill:var(--panel-2);stroke:var(--forest);stroke-width:2}
+  .safedial .tickring{fill:none;stroke:var(--forest);stroke-width:2.4;opacity:.55}
+  .safedial .refmark{fill:var(--forest-bright);filter:drop-shadow(0 0 3px var(--glow))}
+  .safedial .disc{fill:#F4F8F7;stroke:var(--line);stroke-width:1}
+  .safedial .knurl{fill:none;stroke:var(--forest);stroke-width:3.2;opacity:.45}
+  .safedial .indicator{stroke:var(--forest-bright);stroke-width:2.4;stroke-linecap:round;filter:drop-shadow(0 0 3px var(--glow))}
+  .safedial .hub{fill:var(--panel);stroke:var(--forest);stroke-width:1.5}
+  .safedial .dial-face{transform-box:fill-box;transform-origin:center;transform:rotate(0deg);transition:transform .9s cubic-bezier(.2,.7,.15,1)}
+  .safedial.spinning .dial-face{transition:transform 1.05s cubic-bezier(.25,.6,.2,1)}
+  /* Lock-Icon im Zentrum */
+  .safedial .lockicon{transform-box:fill-box;transform-origin:center}
+  .safedial .lockbody{fill:var(--forest);opacity:0;transition:opacity .3s}
+  .safedial .shackle{fill:none;stroke:var(--forest);stroke-width:2;opacity:0;transition:opacity .3s,d .3s}
+  /* Zustände */
+  .safedial.locked .bezel{stroke:var(--amber)}
+  .safedial.locked .tickring{stroke:var(--amber);opacity:.6}
+  .safedial.locked .refmark{fill:var(--amber);filter:none}
+  .safedial.locked .knurl{stroke:var(--amber);opacity:.5}
+  .safedial.locked .indicator{stroke:var(--amber);filter:none}
+  .safedial.locked .hub{stroke:var(--amber)}
+  .safedial.locked .lockbody{fill:var(--amber);opacity:1}
+  .safedial.locked .shackle{stroke:var(--amber);opacity:1}
+  .safedial.open .lockbody{opacity:0}
+  .safedial.open .shackle{opacity:0}
+
+  /* Gesicherte Dateneingabe (geschlossen) */
+  body.data-locked #sections{opacity:.6;filter:grayscale(.35);transition:opacity .4s,filter .4s}
+  .status-block .live.locked-state{color:var(--amber)}
+  body.data-locked .dot{background:var(--amber);box-shadow:0 0 6px rgba(198,132,79,.5)}
+
+  h1{font-family:'Orbitron',sans-serif;font-weight:900;font-size:1.55rem;letter-spacing:.06em;color:var(--heading);line-height:1.1}
+  .subtitle{font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.22em;color:var(--forest);text-transform:uppercase;margin-top:5px}
+
+  .status-block{font-family:'JetBrains Mono',monospace;font-size:.7rem;text-align:right;color:var(--ink-soft);letter-spacing:.08em}
+  .status-block .live{color:var(--forest);font-weight:600}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--forest);margin-right:6px;box-shadow:0 0 6px var(--glow-soft);animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.35}}
+
+  .header-note{
+    margin-top:22px;padding-top:18px;border-top:1px solid var(--line);
+    font-size:.84rem;color:var(--ink-soft);max-width:760px;
+  }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{display:flex;gap:12px;flex-wrap:wrap;margin:26px 0 8px}
+  .btn{
+    font-family:'JetBrains Mono',monospace;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;
+    border:1px solid var(--forest);background:var(--panel);color:var(--forest);
+    padding:11px 18px;border-radius:9px;cursor:pointer;transition:.18s;display:inline-flex;align-items:center;gap:8px;
+  }
+  .btn:hover{background:rgba(46,129,137,.12);color:var(--heading);border-color:var(--forest);box-shadow:0 4px 14px var(--glow-soft)}
+  .btn:focus-visible{outline:2px solid var(--forest);outline-offset:2px}
+  .btn.ghost{border-color:var(--line);color:var(--ink-soft);background:var(--panel)}
+  .btn.ghost:hover{background:var(--panel-2);color:var(--heading);border-color:var(--forest);box-shadow:0 4px 12px var(--glow-soft)}
+  .btn.danger{border-color:var(--danger);color:var(--danger);background:var(--panel)}
+  .btn.danger:hover{background:rgba(193,89,74,.10);color:var(--danger);border-color:var(--danger);box-shadow:0 4px 14px rgba(193,89,74,.18)}
+
+  /* ---------- Nav grid ---------- */
+  .nav-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 30px}
+  .nav-chip{
+    font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.06em;
+    border:1px solid var(--line);background:var(--panel);padding:12px 14px;border-radius:9px;
+    text-decoration:none;color:var(--ink);display:flex;align-items:center;gap:9px;transition:.16s;
+  }
+  .nav-chip:hover{border-color:var(--forest);background:var(--panel-2);transform:translateY(-2px);box-shadow:0 0 14px var(--glow-soft)}
+  .nav-chip .idx{color:var(--forest);font-weight:500;text-shadow:0 0 8px var(--glow-soft)}
+
+  /* ---------- Sections ---------- */
+  section.card{
+    border:1px solid var(--line);background:var(--panel);border-radius:14px;
+    margin-bottom:20px;overflow:hidden;box-shadow:0 6px 20px rgba(40,80,86,.08);
+    transition:border-color .2s,box-shadow .2s,transform .2s;
+  }
+  section.card:hover{border-color:var(--forest-glow);box-shadow:0 10px 26px rgba(40,80,86,.12);transform:translateY(-1px)}
+  .card-head{
+    display:flex;align-items:center;gap:14px;padding:16px 24px;
+    background:linear-gradient(90deg,var(--panel-2),var(--panel));
+    border-bottom:1px solid var(--line-soft);cursor:pointer;user-select:none;position:relative;
+  }
+  .card-head::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--forest-glow);opacity:.85}
+  .card-head .marker{font-family:'Orbitron',sans-serif;font-weight:700;font-size:.8rem;color:var(--heading);letter-spacing:.05em}
+  .card-head h2{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.02rem;letter-spacing:.03em;flex:1;color:var(--heading)}
+  .card-head .glyph{font-size:1.1rem;color:var(--forest)}
+  .card-head .chevron{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);font-size:.8rem;transition:.2s}
+  section.card.collapsed .chevron{transform:rotate(-90deg)}
+  section.card.collapsed .card-body{display:none}
+  .card-body{padding:22px 24px 26px}
+  .hint{font-size:.8rem;color:var(--ink-soft);margin-bottom:16px;font-style:italic}
+
+  /* ---------- Fields ---------- */
+  .field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px 20px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field.full{grid-column:1/-1}
+  label{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--forest)}
+  input,textarea{
+    font-family:'Inter',sans-serif;font-size:.92rem;color:var(--field-ink);
+    background:var(--field-bg);border:1px solid var(--field-line);border-radius:8px;padding:10px 12px;width:100%;transition:.15s;
+  }
+  input:focus,textarea:focus{outline:none;border-color:var(--forest);background:#fff;box-shadow:0 0 0 3px var(--glow-soft)}
+  textarea{resize:vertical;min-height:64px}
+  input::placeholder,textarea::placeholder{color:var(--field-placeholder)}
+
+  /* ---------- Repeatable rows ---------- */
+  .rows{display:flex;flex-direction:column;gap:12px}
+  .row-item{
+    border:1px solid var(--line-soft);border-left:3px solid var(--forest);
+    background:var(--panel-2);border-radius:3px;padding:14px 16px;position:relative;
+  }
+  .row-item .row-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 16px}
+  .row-del{
+    position:absolute;top:10px;right:10px;border:1px solid var(--line);background:transparent;
+    color:var(--danger);width:26px;height:26px;border-radius:3px;cursor:pointer;font-size:.9rem;line-height:1;transition:.15s;
+  }
+  .row-del:hover{background:rgba(193,89,74,.12);color:var(--danger);border-color:var(--danger)}
+  .add-row{
+    font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.08em;
+    border:1px dashed var(--forest);background:transparent;color:var(--forest);
+    padding:10px;border-radius:3px;cursor:pointer;width:100%;margin-top:12px;transition:.15s;
+  }
+  .add-row:hover{background:rgba(46,129,137,.08)}
+
+  /* password masking */
+  .pw-wrap{position:relative}
+  .pw-toggle{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    border:0;background:transparent;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.62rem;
+    color:var(--forest);letter-spacing:.08em;padding:4px 6px;
+  }
+
+  /* ---------- Footer ---------- */
+  footer{
+    margin-top:40px;border-top:1px solid var(--forest);padding-top:22px;
+    font-family:'JetBrains Mono',monospace;font-size:.7rem;color:#2E4E56;letter-spacing:.06em;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;
+  }
+  .seal{display:flex;align-items:center;gap:10px}
+  .seal .lock{color:var(--forest);font-size:1rem}
+
+  .toast{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--heading);color:#fff;font-family:'JetBrains Mono',monospace;font-size:.78rem;letter-spacing:.06em;
+    padding:13px 22px;border-radius:4px;box-shadow:0 8px 30px rgba(58,90,64,.4);opacity:0;pointer-events:none;transition:.3s;z-index:100;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---------- Vermögens-/Verwaltungsmodul ---------- */
+  .ledger-summary{
+    border:1px solid var(--forest);border-radius:4px;background:linear-gradient(135deg,var(--panel-2),var(--panel));
+    padding:18px 20px;margin-bottom:22px;position:relative;overflow:hidden;
+  }
+  .ledger-summary::before{content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:var(--forest)}
+  .ledger-summary h3{font-family:'Orbitron',sans-serif;font-size:.82rem;letter-spacing:.08em;color:var(--heading);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+  .ledger-summary .auto-tag{font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.12em;background:rgba(46,129,137,.14);color:var(--heading);padding:2px 7px;border-radius:6px}
+  .sum-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.84rem}
+  .sum-table th{text-align:left;font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:6px 10px;border-bottom:1px solid var(--line)}
+  .sum-table td{padding:7px 10px;border-bottom:1px solid var(--line-soft)}
+  .sum-table tr:last-child td{border-bottom:0}
+  .sum-cat{font-weight:600;color:var(--forest)}
+  .sum-count{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);font-size:.78rem}
+  .sum-empty{color:#9BA089;font-style:italic;font-size:.82rem;padding:8px 10px}
+  .doc-pill{display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--forest-bright);margin-left:6px;vertical-align:middle}
+  .doc-pill.none{background:var(--line)}
+
+  .grp{border:1px solid var(--line);border-radius:4px;margin-bottom:16px;background:var(--panel-2);overflow:hidden}
+  .grp-head{display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,var(--bg-deep),var(--panel));border-bottom:1px solid var(--line-soft)}
+  .grp-head .gname{font-family:'Orbitron',sans-serif;font-weight:700;font-size:.92rem;letter-spacing:.03em;flex:1;color:var(--heading)}
+  .grp-head .gicon{color:var(--heading);font-size:1rem}
+  .cat{border-left:3px solid var(--forest-glow);margin:12px;border-radius:3px;background:var(--panel);border-top:1px solid var(--line-soft);border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+  .cat-head{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;user-select:none}
+  .cat-head .cname{font-family:'JetBrains Mono',monospace;font-size:.8rem;letter-spacing:.04em;font-weight:500;flex:1;color:var(--ink)}
+  .cat-head .cn{font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--ink-soft);background:var(--bg-deep);padding:2px 8px;border-radius:10px}
+  .cat-head .cchev{font-size:.7rem;color:var(--ink-soft);transition:.2s}
+  .cat.collapsed .cchev{transform:rotate(-90deg)}
+  .cat.collapsed .cat-body{display:none}
+  .cat-body{padding:4px 14px 14px}
+
+  .entry{border:1px solid var(--line-soft);border-radius:3px;padding:12px;margin-bottom:10px;background:var(--panel-2);position:relative}
+  .entry-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px 14px}
+  .entry-foot{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .scan-btn{font-family:'JetBrains Mono',monospace;font-size:.66rem;letter-spacing:.06em;border:1px solid var(--forest);background:transparent;color:var(--forest);padding:7px 12px;border-radius:3px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+  .scan-btn:hover{background:rgba(46,129,137,.12);color:var(--heading);border-color:var(--forest)}
+  .scan-thumb{width:46px;height:46px;border-radius:3px;object-fit:cover;border:1px solid var(--forest);cursor:pointer}
+  .scan-meta{font-family:'JetBrains Mono',monospace;font-size:.64rem;color:var(--ink-soft)}
+  .scan-clear{border:0;background:transparent;color:var(--danger);cursor:pointer;font-size:.7rem;font-family:'JetBrains Mono',monospace}
+  .entry-del{position:absolute;top:8px;right:8px;border:1px solid var(--line);background:transparent;color:var(--danger);width:24px;height:24px;border-radius:3px;cursor:pointer;font-size:.8rem;line-height:1}
+  .entry-del:hover{background:rgba(193,89,74,.12);color:var(--danger)}
+
+  .mini-add{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.06em;border:1px dashed var(--forest);background:transparent;color:var(--forest);padding:8px 12px;border-radius:3px;cursor:pointer;transition:.15s}
+  .mini-add:hover{background:rgba(46,129,137,.08)}
+  .mini-add.cat-add{margin:0 12px 12px;width:calc(100% - 24px)}
+  .grp-add{margin-top:6px}
+  .inline-input{font-family:'Inter',sans-serif;font-size:.85rem;border:1px solid var(--field-line);border-radius:3px;padding:6px 9px;background:var(--field-bg);color:var(--field-ink)}
+
+  /* lightbox */
+  .lightbox{position:fixed;inset:0;background:rgba(44,51,39,.82);z-index:200;display:none;align-items:center;justify-content:center;padding:30px}
+  .lightbox.show{display:flex}
+  .lightbox img{max-width:90%;max-height:88vh;border:2px solid var(--forest-glow);border-radius:4px;box-shadow:0 10px 50px rgba(0,0,0,.5)}
+  .lightbox .lb-close{position:absolute;top:20px;right:26px;color:var(--panel-2);font-family:'JetBrains Mono',monospace;font-size:.9rem;cursor:pointer;letter-spacing:.1em}
+
+  /* ---------- Persönlicher Tresor ---------- */
+  .vault-entry{border:1px solid var(--line-soft);border-left:3px solid var(--amber);background:var(--panel-2);border-radius:3px;padding:14px 16px;margin-bottom:12px;position:relative}
+  .vault-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 16px}
+  .vault-type select{font-family:'Inter',sans-serif;font-size:.9rem;color:var(--field-ink);background:var(--field-bg);border:1px solid var(--field-line);border-radius:3px;padding:9px 11px;width:100%;cursor:pointer}
+
+  /* ---------- Passwortgenerator & Master-Modal ---------- */
+  .pwgen{border:1px solid var(--line);background:var(--panel-2);border-radius:4px;padding:14px 16px;margin:10px 0}
+  .pwgen-out{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .pwgen-field{flex:1;min-width:180px;font-family:'JetBrains Mono',monospace;font-size:.92rem;background:var(--field-bg);border:1px solid var(--field-line);border-radius:3px;padding:10px 12px;color:var(--field-ink);word-break:break-all}
+  .pwgen-bits{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.05em;margin-top:8px}
+  .pwgen-opts{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:.78rem;color:var(--ink-soft)}
+  .pwgen-opts label{display:inline-flex;align-items:center;gap:5px;text-transform:none;letter-spacing:0;font-family:'Inter',sans-serif;font-size:.78rem;color:var(--ink-soft)}
+  .pwgen-opts input[type=range]{vertical-align:middle}
+  .mini-gen{font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:.06em;border:1px solid var(--forest);background:transparent;color:var(--forest);padding:6px 9px;border-radius:3px;cursor:pointer;white-space:nowrap}
+  .mini-gen:hover{background:rgba(46,129,137,.12);color:var(--heading);border-color:var(--forest)}
+
+  .modal-bg{position:fixed;inset:0;background:rgba(34,60,64,.42);z-index:320;display:none;align-items:center;justify-content:center;padding:24px}
+  .modal-bg.show{display:flex}
+  .modal-card{width:100%;max-width:400px;border:1px solid var(--forest);border-radius:6px;background:linear-gradient(135deg,var(--panel),var(--panel-2));padding:26px 24px;box-shadow:0 14px 44px rgba(40,80,86,.18)}
+  .modal-card h3{font-family:'Orbitron',sans-serif;font-size:.95rem;letter-spacing:.04em;margin-bottom:6px;color:var(--heading);text-shadow:0 0 12px var(--glow-soft)}
+  .modal-card p{font-size:.8rem;color:var(--ink-soft);margin-bottom:14px}
+  .modal-card input{width:100%;padding:11px 13px;border:1px solid var(--field-line);border-radius:4px;background:var(--field-bg);color:var(--field-ink);font-size:.95rem}
+  .modal-card input:focus{outline:none;border-color:var(--forest);box-shadow:0 0 0 2px var(--glow-soft),0 0 14px var(--glow-soft)}
+  .modal-msg{font-size:.76rem;color:var(--danger);min-height:16px;margin-top:8px}
+  .modal-actions{display:flex;gap:10px;margin-top:14px}
+  .modal-actions .btn{flex:1;justify-content:center}
+  .bio-btn{border:1px solid var(--forest);background:var(--panel-2);color:var(--forest);border-radius:4px;padding:11px 14px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.74rem;letter-spacing:.06em;width:100%;margin-top:10px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+  .bio-btn:hover{background:rgba(46,129,137,.12);color:var(--heading);border-color:var(--forest)}
+
+  /* ---------- Zugriffsschutz / Gatekeeper ---------- */
+  body.locked .wrap{filter:blur(9px);pointer-events:none;user-select:none}
+  .gate{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;padding:24px;
+    background:radial-gradient(ellipse at 50% 20%,rgba(63,160,170,.14),transparent 62%),var(--backdrop)}
+  body.locked .gate{display:flex}
+  .gate-card{width:100%;max-width:420px;border:1px solid var(--forest);border-radius:6px;
+    background:linear-gradient(135deg,var(--panel),var(--panel-2));padding:34px 30px;box-shadow:0 16px 50px rgba(40,80,86,.20);position:relative;overflow:hidden}
+  .gate-card::after{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--forest),var(--forest-glow),transparent)}
+  .gate-reactor{width:52px;height:52px;margin:0 auto 16px;position:relative;display:grid;place-items:center}
+  .gate-reactor .ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--forest);opacity:.8}
+  .gate-reactor .ring.r2{inset:7px;border-style:dashed;opacity:.5;animation:spin 14s linear infinite}
+  .gate-reactor .core{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle,var(--forest-glow),var(--forest));box-shadow:0 0 12px var(--forest-glow)}
+  .gate h2{font-family:'Orbitron',sans-serif;font-size:1.05rem;letter-spacing:.05em;text-align:center;color:var(--heading);margin-bottom:4px;text-shadow:0 0 14px var(--glow-soft)}
+  .gate .sub{font-family:'JetBrains Mono',monospace;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--heading);text-align:center;margin-bottom:22px}
+  .gate input{width:100%;font-size:1rem;padding:12px 14px;border:1px solid var(--field-line);border-radius:4px;background:var(--field-bg);color:var(--field-ink);text-align:center;letter-spacing:.04em}
+  .gate input:focus{outline:none;border-color:var(--forest);box-shadow:0 0 0 2px var(--glow-soft),0 0 14px var(--glow-soft)}
+  .gate .msg{font-size:.78rem;text-align:center;margin-top:12px;min-height:18px;color:var(--danger)}
+  .gate .btn{width:100%;justify-content:center;margin-top:14px}
+  .gate .gate-hint{font-size:.72rem;color:var(--ink-soft);text-align:center;margin-top:16px;line-height:1.5}
+
+  .rcpt{border:1px solid var(--line-soft);border-left:3px solid var(--forest);background:var(--panel-2);border-radius:3px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .rcpt .rname{font-weight:600;flex:1;min-width:120px}
+  .rcpt .rtag{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.08em;background:rgba(46,129,137,.14);color:var(--heading);padding:2px 8px;border-radius:6px}
+  .rcpt .rtag.owner{background:rgba(198,132,79,.18);color:#8A5A2E}
+  .rcpt button{border:1px solid var(--line);background:transparent;border-radius:3px;padding:6px 10px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.66rem;color:var(--ink-soft)}
+  .rcpt button.rdel{color:var(--danger);border-color:var(--danger)}
+  .rcpt button:hover{background:var(--bg-deep)}
+  .shield-state{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.06em;padding:8px 14px;border-radius:3px;margin-bottom:14px}
+  .shield-state.on{background:rgba(46,129,137,.10);color:var(--forest);border:1px solid var(--forest);box-shadow:0 0 16px var(--glow-soft),inset 0 0 12px var(--glow-soft);text-shadow:0 0 8px var(--glow-soft)}
+  .shield-state.off{background:rgba(255,94,69,.12);color:var(--danger);border:1px solid var(--danger)}
+
+  /* ---------- QR / Barcode ---------- */
+  .qr-panel{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+  .qr-stage{border:1px solid var(--line);background:#fff;border-radius:4px;padding:18px;display:grid;place-items:center;min-width:230px;min-height:230px}
+  .qr-stage canvas,.qr-stage svg,.qr-stage img{max-width:200px;height:auto}
+  .qr-stage .placeholder{color:#9BA089;font-family:'JetBrains Mono',monospace;font-size:.72rem;text-align:center;letter-spacing:.06em}
+  .qr-controls{flex:1;min-width:260px}
+  .qr-controls .field{margin-bottom:12px}
+  .qr-note{font-size:.8rem;color:var(--ink-soft);margin-top:10px;line-height:1.5}
+
+  @media print{
+    body{background:#fff}
+    .hud-corner,.toolbar,.nav-grid,.add-row,.row-del,.pw-toggle,.chevron,body::before,.scan-btn,.entry-del,.mini-add,.scan-clear,.cchev,.grp-add{display:none!important}
+    section.card.collapsed .card-body{display:block!important}
+    .cat.collapsed .cat-body{display:block!important}
+    section.card{break-inside:avoid;border-color:#999}
+    .entry,.cat,.grp{break-inside:avoid}
+  }
+  @media(max-width:560px){
+    h1{font-size:1.2rem}
+    .wrap{padding:30px 16px 70px}
+    .card-body{padding:18px 16px 22px}
+  }
+</style>
+</head>
+<body>
+<script>
+/* ==== DEMO-SEED (nur für die Vorschau) – füllt localStorage vor dem Boot ==== */
+(function(){
+  try{
+    var K='notfallordner_v1', ENV='notfallordner_env_v1';
+    if(localStorage.getItem(ENV)) return;          /* geschützter Modus: nichts anfassen */
+    if(localStorage.getItem(K)) return;            /* bereits Daten vorhanden: nicht überschreiben */
+    localStorage.setItem(K, "{\"personen\": {\"name\": \"Anna Musterfrau\", \"geburt\": \"12.04.1985\", \"adresse\": \"Musterstraße 12, 80331 München\", \"versnr\": \"12 120485 M 123\", \"blutgr\": \"0 Rh+\", \"_rows\": [{\"rolle\": \"Ehepartner\", \"name\": \"Thomas Musterfrau\", \"tel\": \"0170 1234567\", \"mail\": \"thomas@example.de\"}, {\"rolle\": \"Tochter\", \"name\": \"Lena Musterfrau\", \"tel\": \"0151 9876543\", \"mail\": \"lena@example.de\"}]}, \"medizin\": {\"kasse\": \"AOK Bayern\", \"kassennr\": \"A123456789\", \"allergien\": \"Penicillin, Haselnüsse\", \"diagnosen\": \"Bluthochdruck (seit 2019)\", \"_rows\": [{\"art\": \"Medikament\", \"name\": \"Ramipril 5 mg\", \"detail\": \"1x täglich morgens\", \"tel\": \"\"}, {\"art\": \"Arzt\", \"name\": \"Dr. med. Sabine Berg\", \"detail\": \"Hausärztin\", \"tel\": \"089 111222\"}]}, \"zugang\": {\"masterhinweis\": \"Geräte-Code im Tresor hinterlegt – kein Klartext hier\", \"_rows\": [{\"dienst\": \"Apple ID\", \"user\": \"anna@example.de\", \"pw\": \"Wolke-Sonne-42!\", \"notiz\": \"2FA an Thomas' Handy\"}, {\"dienst\": \"Online-Banking Sparkasse\", \"user\": \"anna.m\", \"pw\": \"Fluss7&Berg#Tal\", \"notiz\": \"pushTAN-App\"}]}, \"tresor\": {\"items\": [{\"id\": \"t1\", \"type\": \"pin\", \"info\": \"EC-Karte Sparkasse\", \"vals\": {\"pin\": \"4711\"}}, {\"id\": \"t2\", \"type\": \"login\", \"info\": \"E-Mail GMX\", \"vals\": {\"user\": \"anna@gmx.de\", \"pw\": \"Sommer!2024#Wolke\"}}, {\"id\": \"t3\", \"type\": \"frei\", \"info\": \"Safe-Kombination Keller\", \"vals\": {\"frei\": \"links 12 – rechts 04 – links 33\"}}]}, \"finanzen\": {\"_rows\": [{\"typ\": \"Bank\", \"anbieter\": \"Sparkasse München\", \"nummer\": \"DE12 7005 0000 0012 3456 78\", \"kontakt\": \"Filiale Marienplatz\"}, {\"typ\": \"Versicherung\", \"anbieter\": \"Allianz Lebensversicherung\", \"nummer\": \"LV-445566\", \"kontakt\": \"Herr Klein, 089 555000\"}]}, \"vermoegen\": {\"groups\": [{\"id\": \"bank\", \"name\": \"Bank\", \"icon\": \"◆\", \"cats\": [{\"id\": \"kredite\", \"name\": \"Kredite\", \"entries\": [{\"bez\": \"LBS Bausparvertrag\", \"anbieter\": \"LBS\", \"nummer\": \"12345678\", \"notiz\": \"Zuteilung ab 2027 · Beleg als Foto-Scan hinterlegt\", \"scan\": \"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MjAiIGhlaWdodD0iODIwIiB2aWV3Qm94PSIwIDAgNjIwIDgyMCI+CiAgPHJlY3Qgd2lkdGg9IjYyMCIgaGVpZ2h0PSI4MjAiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNjIwIiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMjc2RTc1Ii8+CiAgPHRleHQgeD0iNDAiIHk9IjQ2IiBmb250LWZhbWlseT0iR2VvcmdpYSwgc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiNmZmZmZmYiIGZvbnQtd2VpZ2h0PSJib2xkIj5MQlMgQmF1c3Bhcmthc3NlPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSI3NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1IiBmaWxsPSIjQ0RFN0U5Ij5CYXVzcGFydmVydHJhZyAmIzgyMTE7IFZlcnRyYWdzdXJrdW5kZTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMyMjMzMzgiPlZlcnRyYWdzbnVtbWVyPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIxNzYiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhIiBmb250LXNpemU9IjI0IiBmaWxsPSIjMUY1QjYyIiBmb250LXdlaWdodD0iYm9sZCI+MTIgMzQ1IDY3ODwvdGV4dD4KICA8bGluZSB4MT0iNDAiIHkxPSIyMDAiIHgyPSI1ODAiIHkyPSIyMDAiIHN0cm9rZT0iI0NCRDlENyIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDAiIHk9IjI0MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5WZXJ0cmFnc2luaGFiZXI8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjI2MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE3IiBmaWxsPSIjMjIzMzM4Ij5Bbm5hIE11c3RlcmZyYXU8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjMwNiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5CYXVzcGFyc3VtbWU8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjMyOCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE3IiBmaWxsPSIjMjIzMzM4Ij41MC4wMDAsMDAgJiM4MzY0OzwvdGV4dD4KICA8dGV4dCB4PSIzMzAiIHk9IjMwNiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5UYXJpZjwvdGV4dD4KICA8dGV4dCB4PSIzMzAiIHk9IjMyOCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE3IiBmaWxsPSIjMjIzMzM4Ij5DbGFzc2ljIEY8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjM3MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5BYnNjaGx1c3NkYXR1bTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMzk0IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTciIGZpbGw9IiMyMjMzMzgiPjAxLjAzLjIwMTk8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIzNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNSIgZmlsbD0iIzU2NkU3NCI+R3V0aGFiZW4gKFN0YW5kIDEyLzIwMjUpPC90ZXh0PgogIDx0ZXh0IHg9IjMzMCIgeT0iMzk0IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTciIGZpbGw9IiMyMjMzMzgiPjE4LjI0MCwwMCAmIzgzNjQ7PC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSI0NTAiIHdpZHRoPSI1NDAiIGhlaWdodD0iMjMwIiBmaWxsPSIjRjJGNUY0IiBzdHJva2U9IiNEQ0U2RTQiLz4KICA8dGV4dCB4PSI2MCIgeT0iNDg2IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM1NjZFNzQiPkRpZXNlIFVya3VuZGUgaXN0IGVpbiBNdXN0ZXItU2NhbiB6dSBEZW1vbnN0cmF0aW9uc3p3ZWNrZW4uPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI1MTIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzU2NkU3NCI+SW0gZWNodGVuIE9yZG5lciBlcnNjaGVpbnQgaGllciBkYXMgYWJmb3RvZ3JhZmllcnRlIE9yaWdpbmFsZG9rdW1lbnQuPC90ZXh0PgogIDxsaW5lIHgxPSIzNjAiIHkxPSI2NDAiIHgyPSI1NjAiIHkyPSI2NDAiIHN0cm9rZT0iIzIyMzMzOCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzYwIiB5PSI2NjIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMyIgZmlsbD0iIzU2NkU3NCI+VW50ZXJzY2hyaWZ0IEJhdXNwYXJrYXNzZTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iNzcwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM4QUEwQTIiPkxCUyAmIzgyMTE7IERlbW8gJiM4MjExOyBEaWdpdGFsZXIgTm90ZmFsbG9yZG5lcjwvdGV4dD4KPC9zdmc+\"}]}, {\"id\": \"aktien\", \"name\": \"Anlage · Aktien\", \"entries\": [{\"bez\": \"Siemens AG\", \"anbieter\": \"comdirect Depot\", \"nummer\": \"DE0007236101\", \"notiz\": \"120 Stück\"}]}, {\"id\": \"etf\", \"name\": \"Anlage · ETF\", \"entries\": [{\"bez\": \"MSCI World ETF\", \"anbieter\": \"iShares (comdirect)\", \"nummer\": \"IE00B4L5Y983\", \"notiz\": \"Sparplan 300 €/Monat\"}]}, {\"id\": \"kinder\", \"name\": \"Anlage · Kinder\", \"entries\": [{\"bez\": \"Sparbuch Lena\", \"anbieter\": \"Sparkasse München\", \"nummer\": \"9988776655\", \"notiz\": \"für Ausbildung\"}]}]}, {\"id\": \"haus\", \"name\": \"Haus\", \"icon\": \"⌂\", \"cats\": [{\"id\": \"versicherung\", \"name\": \"Versicherung\", \"entries\": [{\"bez\": \"Wohngebäudeversicherung\", \"anbieter\": \"Allianz\", \"nummer\": \"WG-556677\", \"notiz\": \"jährlich fällig 01.04.\"}]}, {\"id\": \"strom\", \"name\": \"Strom\", \"entries\": [{\"bez\": \"Stromvertrag\", \"anbieter\": \"Stadtwerke München\", \"nummer\": \"SWM-4451220\", \"notiz\": \"Abschlag 95 €/Monat\"}]}, {\"id\": \"telefon\", \"name\": \"Telefon / Internet\", \"entries\": [{\"bez\": \"Magenta Zuhause L\", \"anbieter\": \"Telekom\", \"nummer\": \"TK-330022\", \"notiz\": \"Router FRITZ!Box 7590\"}]}, {\"id\": \"abwasser\", \"name\": \"Abwasser\", \"entries\": []}, {\"id\": \"muell\", \"name\": \"Müll\", \"entries\": []}, {\"id\": \"garten\", \"name\": \"Garten\", \"entries\": []}, {\"id\": \"pv\", \"name\": \"PV-Anlage\", \"entries\": [{\"bez\": \"Photovoltaik 8 kWp\", \"anbieter\": \"SolarEdge / EnBW\", \"nummer\": \"PV-2023-118\", \"notiz\": \"Einspeisevergütung über EnBW\"}]}, {\"id\": \"reparaturen\", \"name\": \"Reparaturen\", \"entries\": []}, {\"id\": \"renovierungen\", \"name\": \"Renovierungen\", \"entries\": []}]}, {\"id\": \"auto\", \"name\": \"Auto\", \"icon\": \"⊙\", \"cats\": [{\"id\": \"versicherung\", \"name\": \"Versicherung\", \"entries\": [{\"bez\": \"Kfz-Haftpflicht + Teilkasko\", \"anbieter\": \"HUK-Coburg\", \"nummer\": \"KFZ-778811\", \"notiz\": \"VW Golf · M-AB 1234\"}]}, {\"id\": \"steuer\", \"name\": \"Steuer\", \"entries\": [{\"bez\": \"Kfz-Steuer\", \"anbieter\": \"Hauptzollamt München\", \"nummer\": \"M-AB 1234\", \"notiz\": \"178 €/Jahr, Lastschrift\"}]}]}, {\"id\": \"versicherungen\", \"name\": \"Versicherungen\", \"icon\": \"⊕\", \"cats\": [{\"id\": \"allgemein\", \"name\": \"Allgemein\", \"entries\": [{\"bez\": \"Privathaftpflicht\", \"anbieter\": \"Allianz\", \"nummer\": \"HV-998877\", \"notiz\": \"Familie, 5 Mio. Deckung\"}]}]}]}, \"dokumente\": {\"_rows\": [{\"dok\": \"Testament\", \"ort\": \"Notar Dr. Weber, München\", \"hinweis\": \"beglaubigte Kopie im Ordner\"}, {\"dok\": \"Reisepass & Personalausweis\", \"ort\": \"Schreibtisch, oberste Schublade\", \"hinweis\": \"\"}, {\"dok\": \"Grundbuchauszug\", \"ort\": \"Ordner „Haus“\", \"hinweis\": \"Flurstück 118/2\"}]}, \"digital\": {\"wlan\": \"FRITZ!Box 7590 · WLAN-Passwort: Wolke-Sonne-42\", \"wunsch\": \"Facebook & Instagram in Gedenkzustand versetzen, Fotos für Familie sichern\", \"_rows\": [{\"art\": \"Gerät\", \"name\": \"iPhone 15\", \"zugang\": \"Code im Tresor\"}, {\"art\": \"Abo\", \"name\": \"Netflix\", \"zugang\": \"über Apple ID\"}]}, \"vollmachten\": {\"verwahrung\": \"Original beim Notar, Kopie im Ordner\", \"_rows\": [{\"typ\": \"Vorsorgevollmacht\", \"bevoll\": \"Thomas Musterfrau\", \"bgeb\": \"01.07.1983\", \"badr\": \"Musterstraße 12, 80331 München\", \"umfang\": \"Gesundheit, Behörden, Bankgeschäfte\", \"gueltig\": \"ab sofort\", \"ersatz\": \"Lena Musterfrau\", \"status\": \"notariell beglaubigt\"}]}, \"sorgerecht\": {\"elternname\": \"Anna Musterfrau\", \"elterngeb\": \"12.04.1985\", \"elternadr\": \"Musterstraße 12, 80331 München\", \"zweitelternteil\": \"Thomas Musterfrau\", \"kinder\": [{\"id\": \"k1\", \"name\": \"Lena Musterfrau\", \"geb\": \"03.09.2015\", \"gebort\": \"München\"}], \"vormund\": {\"name\": \"Sabine Berg\", \"geb\": \"14.02.1980\", \"adr\": \"Gartenweg 5, 80333 München\", \"verhaeltnis\": \"Tante\"}, \"ersatz\": {\"name\": \"Michael Musterfrau\", \"geb\": \"20.11.1978\", \"adr\": \"Seestr. 3, 82319 Starnberg\", \"verhaeltnis\": \"Onkel\"}, \"begruendung\": \"Verbleib im gewohnten Umfeld, Geschwister nicht trennen, Fortführung der Schule\", \"ausschluss\": \"\", \"ort\": \"München\", \"aufbewahrung\": \"Notar Dr. Weber\"}, \"wuensche\": {\"patverf\": \"Ja · beim Hausarzt & im Ordner\", \"vorsorge\": \"Ja · Thomas Musterfrau\", \"bestattung\": \"Seebestattung Nordsee, schlicht\", \"botschaft\": \"Passt aufeinander auf. Ich hab euch lieb.\"}}");
+    localStorage.setItem('notfallordner_demo','1');
+  }catch(e){}
+})();
+</script>
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-reactor"><div class="ring"></div><div class="ring r2"></div><div class="core"></div></div>
+    <h2>Zugriff geschützt</h2>
+    <div class="sub" id="gateSub">Passwort erforderlich</div>
+    <input type="password" id="gatePass" placeholder="Persönliches Passwort" autocomplete="off">
+    <div class="msg" id="gateMsg"></div>
+    <button class="btn" id="gateBtn">▸ Entsperren</button>
+    <button class="bio-btn" id="gateBioBtn" style="display:none">☉ Mit Face ID / Fingerabdruck</button>
+    <div class="gate-hint" id="gateHint">Jeder berechtigte Empfänger nutzt sein eigenes Passwort.</div>
+  </div>
+</div>
+
+<div class="modal-bg" id="masterModal">
+  <div class="modal-card">
+    <h3>Master-Passwort erforderlich</h3>
+    <p id="masterPrompt">Zum Ändern von Zugängen bitte das Master-Passwort des Owners eingeben.</p>
+    <input type="password" id="masterInput" placeholder="Master-Passwort" autocomplete="off">
+    <div class="modal-msg" id="masterMsg"></div>
+    <button class="bio-btn" id="masterBioBtn" style="display:none">☉ Mit Face ID / Fingerabdruck bestätigen</button>
+    <div class="modal-actions">
+      <button class="btn ghost" id="masterCancel">Abbrechen</button>
+      <button class="btn" id="masterOk">Bestätigen</button>
+    </div>
+  </div>
+</div>
+
+<div class="hud-corner tl"></div>
+<div class="hud-corner tr"></div>
+<div class="hud-corner bl"></div>
+<div class="hud-corner br"></div>
+
+<div class="wrap">
+
+  <header>
+    <div class="sys-row">
+      <div class="brand">
+        <div class="safedial open" id="safeDial" role="button" tabindex="0"
+             aria-pressed="false" aria-label="Dateneingabe öffnen oder schließen" title="Dateneingabe öffnen / schließen">
+          <svg viewBox="0 0 100 100" class="dial-svg" aria-hidden="true">
+            <circle class="bezel" cx="50" cy="50" r="47"/>
+            <circle class="tickring" cx="50" cy="50" r="43" stroke-dasharray="1.4 4.1"/>
+            <polygon class="refmark" points="50,3 45.5,12 54.5,12"/>
+            <g class="dial-face">
+              <circle class="disc" cx="50" cy="50" r="35"/>
+              <circle class="knurl" cx="50" cy="50" r="35" stroke-dasharray="2 3.5"/>
+              <line class="indicator" x1="50" y1="50" x2="50" y2="19"/>
+              <circle class="hub" cx="50" cy="50" r="10"/>
+            </g>
+            <g class="lockicon">
+              <rect class="lockbody" x="43" y="49" width="14" height="11" rx="2"/>
+              <path class="shackle" d="M45.5 49 v-3 a4.5 4.5 0 0 1 9 0 v3"/>
+            </g>
+          </svg>
+        </div>
+        <div>
+          <h1>NOTFALL&shy;ORDNER</h1>
+          <div class="subtitle">Familienarchiv · Vertraulich</div>
+        </div>
+      </div>
+      <div class="status-block">
+        <div><span class="dot"></span><span class="live" id="entryState">DATENEINGABE OFFEN</span></div>
+        <div id="clock">--:--:--</div>
+        <div>OFFLINE · LOKAL</div>
+      </div>
+    </div>
+    <p class="header-note">
+      Dieses Dokument bündelt die wichtigsten Informationen für den Notfall an einem Ort.
+      Es läuft vollständig offline – nichts wird ins Internet gesendet. Trage alles in Ruhe ein,
+      sichere es über <strong>Daten sichern</strong> und bewahre es an einem geschützten Ort auf.
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn" onclick="saveData()">▣ Daten sichern</button>
+    <button class="btn ghost" onclick="document.getElementById('importFile').click()">▤ Sicherung laden</button>
+    <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(event)">
+    <button class="btn ghost" onclick="exportPDF()">⎙ Als PDF exportieren</button>
+    <button class="btn ghost" onclick="toggleAll()">⇕ Alle auf/zu</button>
+    <button class="btn danger" onclick="wipeData()">⊗ Alles löschen</button>
+  </div>
+
+  <nav class="nav-grid" id="navGrid"></nav>
+
+  <main id="sections"></main>
+
+  <footer>
+    <div class="seal"><span class="lock">⬡</span> Lokal gespeichert · keine Cloud · keine Übertragung</div>
+    <div>v1.0 · Familienarchiv</div>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <span class="lb-close">✕ SCHLIESSEN</span>
+  <img id="lightboxImg" src="" alt="Hinterlegtes Dokument">
+</div>
+
+<input type="file" id="scanInput" accept="image/*" capture="environment" style="display:none">
+
+<script>
+/* ===== QR-ENCODER (eigenständig, offline, verifiziert) ===== */
+/* Kompakter, eigenständiger QR-Code-Encoder (Byte-Modus, Fehlerkorrektur M).
+   Offline, ohne Abhängigkeiten. Unterstützt Versionen 1..10 (bis ~270 Byte).
+   Basierend auf der QR-Spezifikation (ISO/IEC 18004). */
+function qrEncode(text){
+  // ---- UTF-8 Bytes ----
+  const data = utf8Bytes(text);
+
+  // ---- Kapazitäten (Byte-Modus, ECC-Level M) für Versionen 1..6 (verifiziert bitidentisch) ----
+  const CAP_M = [0,14,26,42,62,84,106];
+  // EC-Codewords je Block & Blockstruktur (Level M), Versionen 1..6:
+  const ECC_M = {
+    1:[10,[[1,16]]], 2:[16,[[1,28]]], 3:[26,[[1,44]]], 4:[18,[[2,32]]],
+    5:[24,[[2,43]]], 6:[16,[[4,27]]]
+  };
+
+  // Version wählen
+  let version=0;
+  for(let v=1;v<=6;v++){ if(data.length<=CAP_M[v]){version=v;break;} }
+  if(!version) throw new Error('zu lang');
+
+  const size = version*4+17;
+  const [ecLen, blockDefs] = ECC_M[version];
+
+  // ---- Bitstrom: Modus(0100) + Längenfeld + Daten + Terminator ----
+  const bits=[];
+  const pushBits=(val,len)=>{ for(let i=len-1;i>=0;i--) bits.push((val>>i)&1); };
+  pushBits(0b0100,4);                    // Byte-Modus
+  const lenBits = version<10?8:16;       // Längenfeld
+  pushBits(data.length,lenBits);
+  for(const b of data) pushBits(b,8);
+
+  // Gesamtkapazität Datencodewords
+  let totalData=0; for(const [nb,dc] of blockDefs) totalData+=nb*dc;
+  const totalDataBits=totalData*8;
+  // Terminator
+  for(let i=0;i<4 && bits.length<totalDataBits;i++) bits.push(0);
+  // auf Byte auffüllen
+  while(bits.length%8) bits.push(0);
+  // Padding-Bytes
+  const padBytes=[0xEC,0x11]; let pi=0;
+  while(bits.length<totalDataBits){ pushBits(padBytes[pi%2],8); pi++; }
+
+  // Bits -> Datencodewords
+  const dataCW=[];
+  for(let i=0;i<bits.length;i+=8){ let b=0; for(let j=0;j<8;j++) b=(b<<1)|bits[i+j]; dataCW.push(b); }
+
+  // ---- Blöcke + Reed-Solomon ECC ----
+  const blocks=[]; let idx=0;
+  for(const [nb,dc] of blockDefs){
+    for(let k=0;k<nb;k++){
+      const dcw=dataCW.slice(idx,idx+dc); idx+=dc;
+      const ecw=rsEncode(dcw,ecLen);
+      blocks.push({dcw,ecw});
+    }
+  }
+  // Interleave Daten
+  const finalCW=[];
+  const maxData=Math.max(...blocks.map(b=>b.dcw.length));
+  for(let i=0;i<maxData;i++) for(const b of blocks) if(i<b.dcw.length) finalCW.push(b.dcw[i]);
+  const maxEc=Math.max(...blocks.map(b=>b.ecw.length));
+  for(let i=0;i<maxEc;i++) for(const b of blocks) if(i<b.ecw.length) finalCW.push(b.ecw[i]);
+
+  // ---- Matrix aufbauen ----
+  const mat = Array.from({length:size},()=>new Array(size).fill(null));
+  const reserved = Array.from({length:size},()=>new Array(size).fill(false));
+
+  function placeFinder(r,c){
+    for(let i=-1;i<=7;i++)for(let j=-1;j<=7;j++){
+      const rr=r+i, cc=c+j; if(rr<0||rr>=size||cc<0||cc>=size) continue;
+      const on=(i>=0&&i<=6&&(j===0||j===6))||(j>=0&&j<=6&&(i===0||i===6))||(i>=2&&i<=4&&j>=2&&j<=4);
+      mat[rr][cc]=on?1:0; reserved[rr][cc]=true;
+    }
+  }
+  placeFinder(0,0); placeFinder(0,size-7); placeFinder(size-7,0);
+
+  // Timing
+  for(let i=8;i<size-8;i++){ const v=(i%2===0)?1:0;
+    if(mat[6][i]===null){mat[6][i]=v;reserved[6][i]=true;}
+    if(mat[i][6]===null){mat[i][6]=v;reserved[i][6]=true;}
+  }
+  // Dark module
+  mat[size-8][8]=1; reserved[size-8][8]=true;
+
+  // Alignment-Pattern (Versionen >=2)
+  const ALIGN={2:[6,18],3:[6,22],4:[6,26],5:[6,30],6:[6,34],7:[6,22,38],8:[6,24,42],9:[6,26,46],10:[6,28,50]};
+  if(version>=2){
+    const pos=ALIGN[version];
+    for(const r of pos)for(const c of pos){
+      if((r<=7&&c<=7)||(r<=7&&c>=size-8)||(r>=size-8&&c<=7)) continue;
+      for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){
+        const on=(Math.max(Math.abs(i),Math.abs(j))!==1);
+        mat[r+i][c+j]=on?1:0; reserved[r+i][c+j]=true;
+      }
+    }
+  }
+  // Formatinfo-Bereiche reservieren
+  for(let i=0;i<9;i++){ if(!reserved[8][i]){reserved[8][i]=true;mat[8][i]=mat[8][i]??0;} if(!reserved[i][8]){reserved[i][8]=true;mat[i][8]=mat[i][8]??0;} }
+  for(let i=0;i<8;i++){ reserved[8][size-1-i]=true; reserved[size-1-i][8]=true; }
+
+  // ---- Datenbits platzieren (Zickzack) ----
+  let bitArr=[]; for(const cw of finalCW) for(let b=7;b>=0;b--) bitArr.push((cw>>b)&1);
+  let bp=0, upward=true;
+  for(let col=size-1; col>0; col-=2){
+    if(col===6) col--;               // Timing-Spalte überspringen
+    for(let k=0;k<size;k++){
+      const row = upward? size-1-k : k;
+      for(let c=0;c<2;c++){
+        const cc=col-c;
+        if(reserved[row][cc]) continue;
+        let bit = bp<bitArr.length? bitArr[bp++] : 0;
+        mat[row][cc]=bit;
+      }
+    }
+    upward=!upward;
+  }
+
+  // ---- Maske 0 anwenden ((r+c)%2==0) + Formatinfo ----
+  const mask=0;
+  for(let r=0;r<size;r++)for(let c=0;c<size;c++){
+    if(reserved[r][c]) continue;
+    if(((r+c)%2)===0) mat[r][c]^=1;
+  }
+  // Format-Info (ECC M = 00, Maske 000)
+  const fmt = formatBits(0b00, mask); // 15 bit
+  // Platzierung der Formatbits
+  const fb=[]; for(let i=14;i>=0;i--) fb.push((fmt>>i)&1);
+  // Um finder oben-links
+  const coords1=[[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[8,7],[8,8],[7,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8]];
+  coords1.forEach(([r,c],i)=>{mat[r][c]=fb[i];});
+  // Gespiegelt
+  const coords2=[];
+  for(let i=0;i<7;i++) coords2.push([size-1-i,8]);
+  for(let i=0;i<8;i++) coords2.push([8,size-8+i]);
+  coords2.forEach(([r,c],i)=>{mat[r][c]=fb[i];});
+
+  return { size, get:(c,r)=> mat[r][c]?1:0 };
+
+  // ---------- Helpers ----------
+  function utf8Bytes(s){
+    const out=[];
+    for(const ch of s){ let cp=ch.codePointAt(0);
+      if(cp<0x80) out.push(cp);
+      else if(cp<0x800){out.push(0xC0|(cp>>6),0x80|(cp&0x3F));}
+      else if(cp<0x10000){out.push(0xE0|(cp>>12),0x80|((cp>>6)&0x3F),0x80|(cp&0x3F));}
+      else {out.push(0xF0|(cp>>18),0x80|((cp>>12)&0x3F),0x80|((cp>>6)&0x3F),0x80|(cp&0x3F));}
+    }
+    return out;
+  }
+}
+
+/* ---- Galois-Feld GF(256) für Reed-Solomon ---- */
+const GF_EXP=new Array(512), GF_LOG=new Array(256);
+(function(){ let x=1; for(let i=0;i<255;i++){GF_EXP[i]=x;GF_LOG[x]=i;x<<=1;if(x&0x100)x^=0x11D;} for(let i=255;i<512;i++)GF_EXP[i]=GF_EXP[i-255]; })();
+function gfMul(a,b){ return (a===0||b===0)?0:GF_EXP[GF_LOG[a]+GF_LOG[b]]; }
+function rsGenPoly(deg){ let poly=[1]; for(let i=0;i<deg;i++){ const np=new Array(poly.length+1).fill(0);
+  for(let j=0;j<poly.length;j++){ np[j]^=gfMul(poly[j],1); np[j+1]^=gfMul(poly[j],GF_EXP[i]); } poly=np; } return poly; }
+function rsEncode(data,ecLen){
+  const gen=rsGenPoly(ecLen);
+  const res=new Array(ecLen).fill(0);
+  for(const d of data){ const factor=d^res[0]; res.shift(); res.push(0);
+    if(factor!==0) for(let i=0;i<gen.length-1;i++) res[i]^=gfMul(gen[i+1],factor); }
+  return res;
+}
+/* ---- Formatinfo BCH(15,5) ---- */
+function formatBits(ecLevelBits, mask){
+  let data=(ecLevelBits<<3)|mask;          // 5 bit
+  let d=data<<10;
+  const g=0b10100110111;
+  for(let i=14;i>=10;i--){ if((d>>i)&1) d^= g<<(i-10); }
+  let bits=((data<<10)|(d&0x3FF));
+  bits ^= 0b101010000010010;               // Maske laut Spec
+  return bits;
+}
+
+</script>
+<script>
+/* ============ SCHEMA ============ */
+const SCHEMA = [
+  {
+    id:'schutz', glyph:'⛨', title:'Zugriffsschutz & Empfänger',
+    hint:'Verschlüssele den Ordner und lege fest, wer mit eigenem Passwort Zugang erhält. Der Owner kann Empfänger hinzufügen oder entfernen.',
+    security:true
+  },
+  {
+    id:'personen', glyph:'◈', title:'Persönliche Daten & Schlüsselpersonen',
+    hint:'Wer bin ich, und wer soll im Notfall zuerst kontaktiert werden?',
+    fields:[
+      {k:'name',l:'Vollständiger Name',t:'text'},
+      {k:'geburt',l:'Geburtsdatum',t:'text'},
+      {k:'adresse',l:'Wohnadresse',t:'text',full:true},
+      {k:'versnr',l:'Sozialvers.-/Steuer-Nr.',t:'text'},
+      {k:'blutgr',l:'Blutgruppe',t:'text'}
+    ],
+    repeat:{label:'Kontaktpersonen', add:'+ Kontaktperson hinzufügen',
+      cols:[{k:'rolle',l:'Beziehung',ph:'z. B. Ehepartner, Kind'},{k:'name',l:'Name'},{k:'tel',l:'Telefon'},{k:'mail',l:'E-Mail'}]}
+  },
+  {
+    id:'medizin', glyph:'✚', title:'Medizinische Informationen',
+    hint:'Im Ernstfall lebenswichtig – Allergien, Medikamente, Ärzte.',
+    fields:[
+      {k:'kasse',l:'Krankenversicherung',t:'text'},
+      {k:'kassennr',l:'Versichertennummer',t:'text'},
+      {k:'allergien',l:'Allergien / Unverträglichkeiten',t:'textarea',full:true},
+      {k:'diagnosen',l:'Vorerkrankungen / Diagnosen',t:'textarea',full:true}
+    ],
+    repeat:{label:'Medikamente & Ärzte', add:'+ Eintrag hinzufügen',
+      cols:[{k:'art',l:'Art',ph:'Medikament / Arzt'},{k:'name',l:'Name / Präparat'},{k:'detail',l:'Dosis / Fachgebiet'},{k:'tel',l:'Telefon (Arzt)'}]}
+  },
+  {
+    id:'zugang', glyph:'⌬', title:'Zugangsdaten & Passwörter',
+    hint:'Aus der Apple Passwörter-App übernehmen (Anleitung unten). Passwörter sind standardmäßig verdeckt.',
+    fields:[
+      {k:'masterhinweis',l:'Hinweis zum Haupt-/Geräte-Code',t:'text',full:true,ph:'z. B. „im Tresor hinterlegt", KEIN Klartext-Code empfohlen'}
+    ],
+    repeat:{label:'Konten', add:'+ Zugang hinzufügen', pw:true,
+      cols:[{k:'dienst',l:'Dienst / App'},{k:'user',l:'Benutzername / E-Mail'},{k:'pw',l:'Passwort',pw:true},{k:'notiz',l:'Notiz / 2FA'}]}
+  },
+  {
+    id:'tresor', glyph:'⚿', title:'Persönlicher Tresor · PINs & Passwörter',
+    hint:'Freie Eingabe sensibler Zugänge. Wähle pro Eintrag eine Art, trage die Daten ein und ergänze ein kurzes Infofeld zur Identifikation. Geheimfelder sind verdeckt – mit ZEIGEN sichtbar.',
+    vault:true
+  },
+  {
+    id:'finanzen', glyph:'◆', title:'Finanzen, Banken & Versicherungen',
+    hint:'Konten, Verträge und laufende Zahlungen im Überblick.',
+    fields:[],
+    repeat:{label:'Finanzpositionen', add:'+ Position hinzufügen',
+      cols:[{k:'typ',l:'Typ',ph:'Bank / Versicherung / Vertrag'},{k:'anbieter',l:'Anbieter'},{k:'nummer',l:'Konto-/Vertragsnr.'},{k:'kontakt',l:'Kontakt / Hinweis'}]}
+  },
+  {
+    id:'vermoegen', glyph:'⊟', title:'Verträge, Vermögen & Verwaltung',
+    hint:'Jeder Eintrag lässt sich mit einem Foto-Scan des Originaldokuments hinterlegen. Die Übersicht oben aktualisiert sich automatisch. Kategorien und Bereiche per Klick erweiterbar.',
+    ledger:true
+  },
+  {
+    id:'dokumente', glyph:'⬡', title:'Wichtige Dokumente & Aufbewahrungsorte',
+    hint:'Wo liegen Ausweis, Testament, Vollmachten, Urkunden?',
+    fields:[],
+    repeat:{label:'Dokumente', add:'+ Dokument hinzufügen',
+      cols:[{k:'dok',l:'Dokument',ph:'Testament, Vollmacht …'},{k:'ort',l:'Aufbewahrungsort'},{k:'hinweis',l:'Hinweis'}]}
+  },
+  {
+    id:'digital', glyph:'⎔', title:'Digitales Erbe & Geräte',
+    hint:'Geräte, Abos und was damit im Notfall geschehen soll.',
+    fields:[
+      {k:'wlan',l:'WLAN-Name & Passwort',t:'text',full:true},
+      {k:'wunsch',l:'Wunsch zu Social-Media / Online-Konten',t:'textarea',full:true,ph:'z. B. Profile deaktivieren, Daten sichern …'}
+    ],
+    repeat:{label:'Geräte & Abos', add:'+ Eintrag hinzufügen',
+      cols:[{k:'art',l:'Art',ph:'Gerät / Abo'},{k:'name',l:'Bezeichnung'},{k:'zugang',l:'Code / Hinweis'}]}
+  },
+  {
+    id:'vollmachten', glyph:'⊞', title:'Vollmachten erteilen',
+    hint:'Lege fest, wer dich in welchen Bereichen vertreten darf. Jede Vollmacht lässt sich als unterschriftsreifes Dokument drucken. Rechtswirksam erst mit eigenhändiger Unterschrift – ggf. notariell beglaubigen.',
+    fields:[
+      {k:'verwahrung',l:'Aufbewahrungsort der Originale',t:'text',full:true,ph:'z. B. Ordner zu Hause, Notar, Tresor'}
+    ],
+    repeat:{label:'Erteilte Vollmachten', add:'+ Vollmacht hinzufügen', power:true,
+      cols:[
+        {k:'typ',l:'Art der Vollmacht',ph:'Vorsorge-, General-, Konto-, Gesundheits-…'},
+        {k:'bevoll',l:'Bevollmächtigte Person'},
+        {k:'bgeb',l:'Geburtsdatum d. Bevollmächtigten'},
+        {k:'badr',l:'Anschrift d. Bevollmächtigten'},
+        {k:'umfang',l:'Umfang / Befugnisse',ph:'z. B. Bankgeschäfte, Gesundheit, Behörden'},
+        {k:'gueltig',l:'Gültig ab / befristet bis'},
+        {k:'ersatz',l:'Ersatzbevollmächtigte Person'},
+        {k:'status',l:'Status',ph:'Entwurf / unterschrieben / notariell'}
+      ]}
+  },
+  {
+    id:'sorgerecht', glyph:'⬙', title:'Sorgerechtsverfügung (§ 1782 BGB)',
+    hint:'Benenne, wer im Fall, dass beide Eltern ausfallen, die Vormundschaft für deine Kinder übernehmen soll. WICHTIG: Nur wirksam, wenn das Dokument anschließend vollständig handschriftlich abgeschrieben und unterschrieben oder notariell beurkundet wird. Vorbefüllt für ein Kind – weitere per Klick.',
+    custody:true
+  },
+  {
+    id:'wuensche', glyph:'❖', title:'Persönliche Wünsche & Anweisungen',
+    hint:'Was Angehörige wissen sollten – in eigenen Worten.',
+    fields:[
+      {k:'patverf',l:'Patientenverfügung vorhanden?',t:'text',ph:'Ja / Nein · Aufbewahrungsort'},
+      {k:'vorsorge',l:'Vorsorgevollmacht vorhanden?',t:'text',ph:'Ja / Nein · bevollmächtigte Person'},
+      {k:'bestattung',l:'Wünsche zur Bestattung',t:'textarea',full:true},
+      {k:'botschaft',l:'Persönliche Botschaft',t:'textarea',full:true}
+    ]
+  },
+  {
+    id:'qr', glyph:'▦', title:'Schnellzugriff · QR-Code',
+    hint:'Erzeuge einen QR-Code für den schnellen Zugriff auf diesen Ordner. Wähle, worauf er verweisen soll.',
+    qr:true
+  }
+];
+
+/* ============ RENDER ============ */
+const STORE='notfallordner_v1';
+const ENV_STORE='notfallordner_env_v1';   // verschlüsselter Umschlag
+let data = {};
+let vaultKey = null;      // In-Memory-Hauptschlüssel (CryptoKey) nach Entsperren
+let envelope = null;      // aktueller Umschlag {v,protected,content,recipients[]}
+let saveTimer = null;
+
+function isProtected(){ return !!localStorage.getItem(ENV_STORE); }
+
+function load(){
+  // Unverschlüsselter (Alt-)Zustand
+  try{ const raw=localStorage.getItem(STORE); if(raw) return JSON.parse(raw)||{}; }catch(e){}
+  return {};
+}
+
+function persist(){
+  data = collect();
+  if(vaultKey){
+    // geschützt: verschlüsselt speichern (entprellt, nur AES-GCM – schnell)
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async()=>{
+      try{
+        const content = await encryptContent(vaultKey, data);
+        envelope = {...envelope, v:1, protected:true, content};
+        localStorage.setItem(ENV_STORE, JSON.stringify(envelope));
+      }catch(e){ console.error('Verschlüsseltes Speichern fehlgeschlagen', e); }
+    }, 250);
+  }else{
+    localStorage.setItem(STORE, JSON.stringify(data));
+  }
+}
+
+/* ---------- Krypto-Kern (Web Crypto, offline) ---------- */
+const _enc=new TextEncoder(), _dec=new TextDecoder();
+const KDF_ITER=600000;
+const _b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
+const _unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function deriveWrapKey(password,salt,iter){
+  const base=await crypto.subtle.importKey('raw',_enc.encode(password),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function genDEK(){ return crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']); }
+async function encryptContent(dek,obj){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},dek,_enc.encode(JSON.stringify(obj)));
+  return {iv:_b64(iv),ct:_b64(ct)};
+}
+async function decryptContent(dek,content){
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(content.iv)},dek,_unb64(content.ct));
+  return JSON.parse(_dec.decode(pt));
+}
+async function wrapDEK(dek,password,iter=KDF_ITER){
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const wk=await deriveWrapKey(password,salt,iter);
+  const rawDek=await crypto.subtle.exportKey('raw',dek);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const wrapped=await crypto.subtle.encrypt({name:'AES-GCM',iv},wk,rawDek);
+  return {salt:_b64(salt),iv:_b64(iv),wrapped:_b64(wrapped),iter};
+}
+async function unwrapDEK(slot,password){
+  const wk=await deriveWrapKey(password,_unb64(slot.salt),slot.iter||KDF_ITER);
+  const rawDek=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(slot.iv)},wk,_unb64(slot.wrapped));
+  return crypto.subtle.importKey('raw',rawDek,{name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+}
+async function tryUnlock(env,password){
+  for(const slot of env.recipients){
+    try{ const dek=await unwrapDEK(slot,password); const d=await decryptContent(dek,env.content); return {dek,data:d,slot}; }
+    catch(e){}
+  }
+  return null;
+}
+
+/* ---------- Passwortgenerator (aktueller Standard: CSPRNG, Länge vor Komplexität) ---------- */
+const PW_SETS={lower:'abcdefghijklmnopqrstuvwxyz',upper:'ABCDEFGHIJKLMNOPQRSTUVWXYZ',digit:'0123456789',symbol:"!@#$%^&*()-_=+[]{};:,.?/"};
+const PW_AMBIG=/[O0oIl1|`'".,;:]/g;
+function secRandInt(max){
+  const limit=Math.floor(0xFFFFFFFF/max)*max;
+  const buf=new Uint32Array(1);let x;
+  do{crypto.getRandomValues(buf);x=buf[0];}while(x>=limit);
+  return x%max;
+}
+function genPassword(opts={}){
+  const len=Math.max(8,opts.length||24);
+  let pools=['lower','upper','digit','symbol'].filter(k=>opts[k]!==false);
+  if(!pools.length)pools=['lower','upper','digit','symbol'];
+  let poolChars=pools.map(k=>PW_SETS[k]).join('');
+  if(opts.avoidAmbiguous)poolChars=poolChars.replace(PW_AMBIG,'');
+  const cls=pools.map(k=>{let s=PW_SETS[k];if(opts.avoidAmbiguous)s=s.replace(PW_AMBIG,'');return new Set(s);});
+  let pw,tries=0,allPresent=false;
+  do{
+    const out=[];
+    for(let i=0;i<len;i++)out.push(poolChars[secRandInt(poolChars.length)]);
+    pw=out.join('');tries++;
+    allPresent=cls.every(set=>[...pw].some(c=>set.has(c)));
+  }while(!allPresent&&tries<50);
+  const entropy=Math.round(len*Math.log2(poolChars.length));
+  return {pw,entropy,pool:poolChars.length};
+}
+function pwRating(bits){
+  if(bits>=128)return {t:'sehr stark',c:'var(--forest)'};
+  if(bits>=90)return {t:'stark',c:'var(--forest-bright)'};
+  if(bits>=60)return {t:'ausreichend',c:'var(--amber)'};
+  return {t:'schwach',c:'var(--danger)'};
+}
+
+/* ---------- Master-Passwort-Prüfung (kryptografisch: Owner-Slot entschlüsseln) ---------- */
+async function verifyMaster(password){
+  if(!envelope) return null;
+  const ownerSlot=(envelope.recipients||[]).find(r=>r.owner) || (envelope.recipients||[])[0];
+  if(!ownerSlot) return null;
+  try{ return await unwrapDEK(ownerSlot,password); }catch(e){ return null; }
+}
+
+/* ---------- Biometrie (WebAuthn + PRF) – optionale Owner-Entsperrung, gerätegebunden ---------- */
+function bioSupportedContext(){
+  const secure = window.isSecureContext===true;
+  const host = location.hostname;
+  const okHost = host==='localhost' || host==='127.0.0.1' || location.protocol==='https:';
+  return secure && okHost && !!window.PublicKeyCredential;
+}
+async function bioAvailable(){
+  try{
+    if(!bioSupportedContext())return false;
+    return await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  }catch(e){ return false; }
+}
+function _rand(n){ return crypto.getRandomValues(new Uint8Array(n)); }
+async function bioRegister(dek){
+  // Plattform-Authenticator mit PRF-Extension registrieren, DEK unter PRF-Secret sichern
+  const userId=_rand(16);
+  const challenge=_rand(32);
+  const prfSalt=_rand(32);
+  const cred=await navigator.credentials.create({publicKey:{
+    challenge,
+    rp:{name:'Notfallordner', id:location.hostname},
+    user:{id:userId, name:'owner', displayName:'Owner'},
+    pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+    authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},
+    timeout:60000,
+    extensions:{prf:{eval:{first:prfSalt}}}
+  }});
+  const ext=cred.getClientExtensionResults();
+  if(!ext.prf||!ext.prf.results||!ext.prf.results.first){
+    throw new Error('PRF-Extension nicht unterstützt');
+  }
+  const prfKey=await crypto.subtle.importKey('raw',ext.prf.results.first,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const rawDek=await crypto.subtle.exportKey('raw',dek);
+  const iv=_rand(12);
+  const wrapped=await crypto.subtle.encrypt({name:'AES-GCM',iv},prfKey,rawDek);
+  return {
+    credId:_b64(cred.rawId),
+    prfSalt:_b64(prfSalt),
+    iv:_b64(iv),
+    wrapped:_b64(wrapped)
+  };
+}
+async function bioUnlock(bio){
+  const challenge=_rand(32);
+  const assertion=await navigator.credentials.get({publicKey:{
+    challenge,
+    rpId:location.hostname,
+    allowCredentials:[{type:'public-key',id:_unb64(bio.credId)}],
+    userVerification:'required',
+    timeout:60000,
+    extensions:{prf:{eval:{first:_unb64(bio.prfSalt)}}}
+  }});
+  const ext=assertion.getClientExtensionResults();
+  if(!ext.prf||!ext.prf.results||!ext.prf.results.first) throw new Error('PRF fehlt');
+  const prfKey=await crypto.subtle.importKey('raw',ext.prf.results.first,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const rawDek=await crypto.subtle.decrypt({name:'AES-GCM',iv:_unb64(bio.iv)},prfKey,_unb64(bio.wrapped));
+  return crypto.subtle.importKey('raw',rawDek,{name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+}
+
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+
+function render(){
+  const nav=document.getElementById('navGrid');
+  const main=document.getElementById('sections');
+  nav.innerHTML='';main.innerHTML='';
+
+  SCHEMA.forEach((sec,i)=>{
+    const num=String(i+1).padStart(2,'0');
+    const chip=el('a','nav-chip',`<span class="idx">${num}</span> ${sec.title.split(' ')[0]}`);
+    chip.href='#'+sec.id;nav.appendChild(chip);
+
+    const card=el('section','card');card.id=sec.id;
+    const head=el('div','card-head',
+      `<span class="marker">${num}</span><span class="glyph">${sec.glyph}</span><h2>${sec.title}</h2><span class="chevron">▼</span>`);
+    head.onclick=()=>card.classList.toggle('collapsed');
+    card.appendChild(head);
+
+    const body=el('div','card-body');
+    if(sec.hint)body.appendChild(el('p','hint',sec.hint));
+
+    if(sec.ledger){
+      renderLedger(sec,body);
+      card.appendChild(body);main.appendChild(card);
+      return;
+    }
+    if(sec.vault){
+      renderVault(sec,body);
+      card.appendChild(body);main.appendChild(card);
+      return;
+    }
+    if(sec.qr){
+      renderQR(sec,body);
+      card.appendChild(body);main.appendChild(card);
+      return;
+    }
+    if(sec.custody){
+      renderCustody(sec,body);
+      card.appendChild(body);main.appendChild(card);
+      return;
+    }
+    if(sec.security){
+      renderSecurity(sec,body);
+      card.appendChild(body);main.appendChild(card);
+      return;
+    }
+
+    if(sec.fields&&sec.fields.length){
+      const grid=el('div','field-grid');
+      sec.fields.forEach(f=>{
+        const wrap=el('div','field'+(f.full?' full':''));
+        wrap.appendChild(el('label',null,f.l));
+        let inp;
+        if(f.t==='textarea'){inp=el('textarea');}
+        else{inp=el('input');inp.type='text';}
+        inp.placeholder=f.ph||'';
+        inp.dataset.sec=sec.id;inp.dataset.key=f.k;
+        inp.value=(data[sec.id]&&data[sec.id][f.k])||'';
+        inp.oninput=persist;
+        wrap.appendChild(inp);grid.appendChild(wrap);
+      });
+      body.appendChild(grid);
+    }
+
+    if(sec.repeat){
+      const lab=el('label',null,sec.repeat.label);lab.style.marginBottom='8px';lab.style.display='block';
+      body.appendChild(lab);
+      const rows=el('div','rows');rows.dataset.sec=sec.id;body.appendChild(rows);
+      const saved=(data[sec.id]&&data[sec.id]._rows)||[];
+      if(saved.length)saved.forEach(r=>rows.appendChild(buildRow(sec,r)));
+      else rows.appendChild(buildRow(sec,{}));
+      const add=el('button','add-row',sec.repeat.add);
+      add.onclick=()=>{rows.appendChild(buildRow(sec,{}));persist();};
+      body.appendChild(add);
+    }
+
+    card.appendChild(body);main.appendChild(card);
+  });
+}
+
+/* ============ VERMÖGENS-/VERWALTUNGSMODUL ============ */
+const LEDGER_DEFAULT = [
+  {id:'bank', name:'Bank', icon:'◆', cats:[
+    {id:'kredite', name:'Kredite', entries:[]},
+    {id:'aktien', name:'Anlage · Aktien', entries:[]},
+    {id:'etf', name:'Anlage · ETF', entries:[]},
+    {id:'kinder', name:'Anlage · Kinder', entries:[]}
+  ]},
+  {id:'haus', name:'Haus', icon:'⌂', cats:[
+    {id:'versicherung', name:'Versicherung', entries:[]},
+    {id:'strom', name:'Strom', entries:[]},
+    {id:'telefon', name:'Telefon / Internet', entries:[]},
+    {id:'abwasser', name:'Abwasser', entries:[]},
+    {id:'muell', name:'Müll', entries:[]},
+    {id:'garten', name:'Garten', entries:[]},
+    {id:'pv', name:'PV-Anlage', entries:[]},
+    {id:'reparaturen', name:'Reparaturen', entries:[]},
+    {id:'renovierungen', name:'Renovierungen', entries:[]}
+  ]},
+  {id:'auto', name:'Auto', icon:'⊙', cats:[
+    {id:'versicherung', name:'Versicherung', entries:[]},
+    {id:'steuer', name:'Steuer', entries:[]}
+  ]},
+  {id:'versicherungen', name:'Versicherungen', icon:'⊕', cats:[
+    {id:'allgemein', name:'Allgemein', entries:[]}
+  ]}
+];
+
+function getLedger(){
+  if(!data.vermoegen || !Array.isArray(data.vermoegen.groups)){
+    data.vermoegen = {groups: JSON.parse(JSON.stringify(LEDGER_DEFAULT))};
+  }
+  return data.vermoegen.groups;
+}
+function saveLedger(){ localStorage.setItem(STORE,JSON.stringify(data)); }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+function renderLedger(sec,body){
+  const groups=getLedger();
+
+  // -- automatische Übersicht --
+  const summary=el('div','ledger-summary');
+  summary.id='ledgerSummary';
+  body.appendChild(summary);
+  buildSummary(summary,groups);
+
+  // -- Gruppen --
+  const container=el('div');container.id='ledgerGroups';body.appendChild(container);
+  groups.forEach(g=>container.appendChild(buildGroup(g,summary,groups)));
+
+  // -- neue Gruppe --
+  const addGrp=el('button','mini-add grp-add','＋ Neuen Bereich hinzufügen');
+  addGrp.onclick=()=>{
+    const name=prompt('Name des neuen Bereichs (z. B. Boot, Ferienhaus):');
+    if(!name)return;
+    groups.push({id:uid(),name:name.trim(),icon:'◇',cats:[{id:uid(),name:'Allgemein',entries:[]}]});
+    saveLedger();container.appendChild(buildGroup(groups[groups.length-1],summary,groups));
+    buildSummary(summary,groups);
+  };
+  body.appendChild(addGrp);
+}
+
+function buildSummary(box,groups){
+  let totalEntries=0,totalDocs=0;
+  let rows='';
+  groups.forEach(g=>{
+    const cats=g.cats.filter(c=>c.entries.length);
+    g.cats.forEach(c=>{c.entries.forEach(e=>{totalEntries++;if(e.scan)totalDocs++;});});
+    if(cats.length){
+      cats.forEach((c,ci)=>{
+        const docs=c.entries.filter(e=>e.scan).length;
+        rows+=`<tr>
+          <td>${ci===0?`<span class="sum-cat">${esc(g.name)}</span>`:''}</td>
+          <td>${esc(c.name)}</td>
+          <td class="sum-count">${c.entries.length} Eintrag${c.entries.length===1?'':'e'}</td>
+          <td class="sum-count">${docs} Scan${docs===1?'':'s'} <span class="doc-pill ${docs?'':'none'}"></span></td>
+        </tr>`;
+      });
+    }
+  });
+  box.innerHTML=`
+    <h3>⊟ Automatische Übersicht <span class="auto-tag">LIVE</span></h3>
+    <div class="sum-count">${totalEntries} Einträge insgesamt · ${totalDocs} hinterlegte Dokumente</div>
+    ${totalEntries? `<table class="sum-table">
+      <thead><tr><th>Bereich</th><th>Kategorie</th><th>Einträge</th><th>Dokumente</th></tr></thead>
+      <tbody>${rows}</tbody></table>`
+    : `<div class="sum-empty">Noch keine Einträge erfasst. Sobald du unten etwas einträgst, erscheint es hier automatisch.</div>`}
+  `;
+}
+
+function buildGroup(g,summary,groups){
+  const wrap=el('div','grp');
+  const head=el('div','grp-head',`<span class="gicon">${g.icon||'◇'}</span><span class="gname">${esc(g.name)}</span>`);
+  const delG=el('button','entry-del','✕');delG.style.position='static';delG.title='Bereich löschen';
+  delG.onclick=()=>{
+    if(confirm(`Bereich „${g.name}" mit allen Kategorien löschen?`)){
+      const i=groups.indexOf(g);if(i>-1)groups.splice(i,1);saveLedger();wrap.remove();buildSummary(summary,groups);
+    }
+  };
+  head.appendChild(delG);
+  wrap.appendChild(head);
+
+  const catBox=el('div');wrap.appendChild(catBox);
+  g.cats.forEach(c=>catBox.appendChild(buildCat(g,c,summary,groups)));
+
+  const addCat=el('button','mini-add cat-add','＋ Kategorie hinzufügen');
+  addCat.onclick=()=>{
+    const name=prompt(`Neue Kategorie in „${g.name}":`);
+    if(!name)return;
+    const c={id:uid(),name:name.trim(),entries:[]};g.cats.push(c);saveLedger();
+    catBox.appendChild(buildCat(g,c,summary,groups));buildSummary(summary,groups);
+  };
+  wrap.appendChild(addCat);
+  return wrap;
+}
+
+function buildCat(g,c,summary,groups){
+  const cat=el('div','cat collapsed');
+  const head=el('div','cat-head',
+    `<span class="cchev">▼</span><span class="cname">${esc(c.name)}</span><span class="cn">${c.entries.length}</span>`);
+  head.onclick=(e)=>{if(e.target.classList.contains('catdel'))return;cat.classList.toggle('collapsed');};
+  const delC=el('button','entry-del catdel','✕');delC.style.position='static';delC.title='Kategorie löschen';
+  delC.onclick=(e)=>{e.stopPropagation();if(confirm(`Kategorie „${c.name}" löschen?`)){const i=g.cats.indexOf(c);if(i>-1)g.cats.splice(i,1);saveLedger();cat.remove();buildSummary(summary,groups);}};
+  head.appendChild(delC);
+  cat.appendChild(head);
+
+  const body=el('div','cat-body');
+  const list=el('div');body.appendChild(list);
+  c.entries.forEach(en=>list.appendChild(buildEntry(g,c,en,head,summary,groups)));
+
+  const addE=el('button','mini-add','＋ Eintrag hinzufügen');
+  addE.onclick=()=>{
+    const en={id:uid(),bez:'',nummer:'',anbieter:'',notiz:'',scan:null};
+    c.entries.push(en);saveLedger();
+    list.appendChild(buildEntry(g,c,en,head,summary,groups));
+    updateCount(head,c);buildSummary(summary,groups);
+    cat.classList.remove('collapsed');
+  };
+  body.appendChild(addE);
+  cat.appendChild(body);
+  return cat;
+}
+
+function updateCount(head,c){head.querySelector('.cn').textContent=c.entries.length;}
+
+function buildEntry(g,c,en,head,summary,groups){
+  const item=el('div','entry');
+  const grid=el('div','entry-grid');
+  const fields=[
+    {k:'bez',l:'Bezeichnung',ph:'z. B. LBS Bausparvertrag'},
+    {k:'anbieter',l:'Anbieter / Gesellschaft',ph:'z. B. LBS'},
+    {k:'nummer',l:'Vertrags-/Nummer',ph:'z. B. 12345678'},
+    {k:'notiz',l:'Notiz / Ablaufdatum',ph:'Hinweis'}
+  ];
+  fields.forEach(f=>{
+    const fw=el('div','field');
+    fw.appendChild(el('label',null,f.l));
+    const inp=el('input');inp.type='text';inp.value=en[f.k]||'';inp.placeholder=f.ph;
+    inp.oninput=()=>{en[f.k]=inp.value;saveLedger();};
+    fw.appendChild(inp);grid.appendChild(fw);
+  });
+  item.appendChild(grid);
+
+  const foot=el('div','entry-foot');
+  const scanBtn=el('button','scan-btn','◰ Foto-Scan hinterlegen');
+  const thumbHost=el('span');
+  function renderScan(){
+    thumbHost.innerHTML='';
+    if(en.scan){
+      scanBtn.innerHTML='◰ Scan ersetzen';
+      const img=el('img','scan-thumb');img.src=en.scan;img.title='Klicken zum Vergrößern';
+      img.onclick=()=>openLightbox(en.scan);
+      const meta=el('span','scan-meta',' Dokument hinterlegt');
+      const clr=el('button','scan-clear','entfernen');
+      clr.onclick=()=>{en.scan=null;saveLedger();renderScan();buildSummary(summary,groups);};
+      thumbHost.appendChild(img);thumbHost.appendChild(meta);thumbHost.appendChild(clr);
+    }else{
+      scanBtn.innerHTML='◰ Foto-Scan hinterlegen';
+    }
+  }
+  scanBtn.onclick=()=>pickScan(dataUrl=>{en.scan=dataUrl;saveLedger();renderScan();buildSummary(summary,groups);});
+  foot.appendChild(scanBtn);foot.appendChild(thumbHost);
+  item.appendChild(foot);
+  renderScan();
+
+  const del=el('button','entry-del','✕');
+  del.onclick=()=>{const i=c.entries.indexOf(en);if(i>-1)c.entries.splice(i,1);saveLedger();item.remove();updateCount(head,c);buildSummary(summary,groups);};
+  item.appendChild(del);
+  return item;
+}
+
+/* -- Foto aufnehmen / wählen + komprimieren -- */
+function pickScan(cb){
+  const input=document.getElementById('scanInput');
+  input.value='';
+  input.onchange=()=>{
+    const file=input.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const max=1400;let{width:w,height:h}=img;
+        if(w>max||h>max){const s=Math.min(max/w,max/h);w=Math.round(w*s);h=Math.round(h*s);}
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        cb(cv.toDataURL('image/jpeg',0.72));
+        toast('Dokument-Scan hinterlegt');
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function openLightbox(src){const lb=document.getElementById('lightbox');document.getElementById('lightboxImg').src=src;lb.classList.add('show');}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('show');}
+
+function esc(s){return (s||'').toString().replace(/[<>&"]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));}
+
+/* ============ PERSÖNLICHER TRESOR ============ */
+const VAULT_TYPES = {
+  pin:    {label:'PIN', cols:[{k:'pin',l:'PIN',secret:true}]},
+  login:  {label:'Passwort & Nutzername', cols:[{k:'user',l:'Nutzername'},{k:'pw',l:'Passwort',secret:true}]},
+  frei:   {label:'FREI', cols:[{k:'frei',l:'Freier Inhalt',secret:true,area:true}]}
+};
+
+function getVault(){
+  if(!data.tresor || !Array.isArray(data.tresor.items)) data.tresor={items:[]};
+  return data.tresor.items;
+}
+function saveVault(){ localStorage.setItem(STORE,JSON.stringify(data)); }
+
+function renderVault(sec,body){
+  const items=getVault();
+  const list=el('div');list.id='vaultList';body.appendChild(list);
+  if(!items.length) items.push({id:uid(),type:'pin',info:'',vals:{}});
+  items.forEach(it=>list.appendChild(buildVaultEntry(it,items)));
+  const add=el('button','add-row','+ Eintrag hinzufügen');
+  add.onclick=()=>{const it={id:uid(),type:'pin',info:'',vals:{}};items.push(it);saveVault();list.appendChild(buildVaultEntry(it,items));};
+  body.appendChild(add);
+}
+
+function buildVaultEntry(it,items){
+  const wrap=el('div','vault-entry');
+  const grid=el('div','vault-grid');
+
+  // 1. Dropdown Art
+  const typeF=el('div','field vault-type');
+  typeF.appendChild(el('label',null,'Art'));
+  const sel=el('select');
+  Object.entries(VAULT_TYPES).forEach(([k,v])=>{const o=el('option',null,v.label);o.value=k;if(it.type===k)o.selected=true;sel.appendChild(o);});
+  typeF.appendChild(sel);grid.appendChild(typeF);
+
+  // 2. dynamische Eingabefelder + 3. Infofeld
+  const dynHost=el('div');dynHost.style.display='contents';
+  grid.appendChild(dynHost);
+
+  function renderFields(){
+    dynHost.innerHTML='';
+    VAULT_TYPES[it.type].cols.forEach(c=>{
+      const f=el('div','field');
+      f.appendChild(el('label',null,c.l));
+      if(c.secret){
+        const pw=el('div','pw-wrap');
+        let inp;
+        if(c.area){inp=el('textarea');inp.style.paddingRight='62px';}
+        else{inp=el('input');inp.type='password';}
+        inp.value=it.vals[c.k]||'';
+        inp.oninput=()=>{it.vals[c.k]=inp.value;saveVault();};
+        const tog=el('button','pw-toggle','ZEIGEN');tog.type='button';
+        tog.onclick=()=>{
+          if(c.area){inp.dataset.h=inp.dataset.h==='1'?'':'1';tog.textContent=inp.dataset.h==='1'?'VERB.':'ZEIGEN';inp.style.webkitTextSecurity=inp.dataset.h==='1'?'none':'disc';}
+          else if(inp.type==='password'){inp.type='text';tog.textContent='VERB.';}
+          else{inp.type='password';tog.textContent='ZEIGEN';}
+        };
+        if(c.area){inp.style.webkitTextSecurity='disc';}
+        pw.appendChild(inp);pw.appendChild(tog);f.appendChild(pw);
+      }else{
+        const inp=el('input');inp.type='text';inp.value=it.vals[c.k]||'';
+        inp.oninput=()=>{it.vals[c.k]=inp.value;saveVault();};
+        f.appendChild(inp);
+      }
+      dynHost.appendChild(f);
+    });
+    // Infofeld zur Identifikation
+    const inf=el('div','field');
+    inf.appendChild(el('label',null,'Infofeld · Identifikation'));
+    const ii=el('input');ii.type='text';ii.placeholder='z. B. „EC-Karte Sparkasse", „Handy-Code"';ii.value=it.info||'';
+    ii.oninput=()=>{it.info=ii.value;saveVault();};
+    inf.appendChild(ii);dynHost.appendChild(inf);
+  }
+  renderFields();
+
+  sel.onchange=()=>{it.type=sel.value;it.vals={};saveVault();renderFields();};
+
+  wrap.appendChild(grid);
+  const del=el('button','entry-del','✕');
+  del.onclick=()=>{const i=items.indexOf(it);if(i>-1)items.splice(i,1);saveVault();wrap.remove();};
+  wrap.appendChild(del);
+  return wrap;
+}
+
+/* ============ QR-CODE / SCHNELLZUGRIFF ============ */
+function renderQR(sec,body){
+  const panel=el('div','qr-panel');
+  const stage=el('div','qr-stage');stage.id='qrStage';
+  stage.innerHTML='<div class="placeholder">Noch kein Code erzeugt</div>';
+  const controls=el('div','qr-controls');
+
+  controls.innerHTML=`
+    <div class="field">
+      <label>Verweis-Art</label>
+    </div>`;
+  const sel=el('select');sel.className='';sel.style.cssText='font-family:Inter;font-size:.9rem;border:1px solid var(--forest);border-radius:3px;padding:9px 11px;width:100%;background:var(--field-bg);color:var(--field-ink);cursor:pointer;margin-bottom:12px';
+  [['file','Lokaler Dateipfad dieser Seite (offline)'],['url','Eigene Web-Adresse (falls hinterlegt)'],['text','Freier Text / Notiz im Code']].forEach(([v,l])=>{const o=el('option',null,l);o.value=v;sel.appendChild(o);});
+  controls.appendChild(sel);
+
+  const inF=el('div','field');
+  inF.appendChild(el('label',null,'Inhalt des Codes'));
+  const inp=el('input');inp.type='text';inp.id='qrInput';
+  inp.value=(data.qr&&data.qr.value)||'';
+  inF.appendChild(inp);controls.appendChild(inF);
+
+  function ph(){
+    if(sel.value==='file')return 'z. B. file:///Users/name/Notfallordner/notfallordner.html';
+    if(sel.value==='url')return 'https://...';
+    return 'Beliebiger Text, der im Code stecken soll';
+  }
+  inp.placeholder=ph();
+  sel.onchange=()=>{inp.placeholder=ph();if(data.qr)data.qr.type=sel.value;};
+  if(data.qr&&data.qr.type)sel.value=data.qr.type;
+
+  const genBtn=el('button','btn','▦ QR-Code erzeugen');genBtn.style.marginTop='6px';
+  genBtn.onclick=()=>{
+    const val=inp.value.trim();
+    if(!val){toast('Bitte zuerst einen Inhalt eingeben');return;}
+    data.qr={type:sel.value,value:val};localStorage.setItem(STORE,JSON.stringify(data));
+    drawQR(stage,val);
+  };
+  controls.appendChild(genBtn);
+
+  const dlBtn=el('button','btn ghost','⬇ Als PNG speichern');dlBtn.style.cssText='margin-top:6px;margin-left:8px';
+  dlBtn.onclick=()=>{
+    const cv=stage.querySelector('canvas');
+    if(!cv){toast('Erst einen Code erzeugen');return;}
+    const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download='Notfallordner_QR.png';a.click();
+  };
+  controls.appendChild(dlBtn);
+
+  controls.appendChild(el('p','qr-note',
+    'Tipp: Der QR-Code öffnet nur, was als Inhalt hinterlegt ist. Für echten Direktzugriff lege diese HTML-Datei an einen festen Ort (z. B. Dokumente-Ordner oder USB-Stick) und trage den vollständigen Dateipfad ein. Liegt die Seite auf einem privaten Server oder in einer Cloud mit Freigabe-Link, nutze die Web-Adresse.'));
+
+  panel.appendChild(stage);panel.appendChild(controls);body.appendChild(panel);
+
+  if(data.qr&&data.qr.value)drawQR(stage,data.qr.value);
+}
+
+/* QR-Generator: kompakter eigenständiger Encoder (keine externe Bibliothek, offline) */
+function drawQR(stage,text){
+  try{
+    const qr=qrEncode(text);
+    const n=qr.size, scale=Math.max(2,Math.floor(220/n)), pad=4*scale;
+    const px=n*scale+pad*2;
+    const cv=document.createElement('canvas');cv.width=px;cv.height=px;
+    const ctx=cv.getContext('2d');
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,px,px);
+    ctx.fillStyle='#2B3125';
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++){if(qr.get(c,r))ctx.fillRect(pad+c*scale,pad+r*scale,scale,scale);}
+    stage.innerHTML='';stage.appendChild(cv);
+    toast('QR-Code erzeugt');
+  }catch(e){
+    stage.innerHTML='<div class="placeholder">Inhalt zu lang für einen QR-Code.<br>Bitte kürzeren Pfad/Text verwenden.</div>';
+  }
+}
+
+/* ============ SORGERECHTSVERFÜGUNG (§ 1782 BGB) ============ */
+function getCustody(){
+  if(!data.sorgerecht || typeof data.sorgerecht!=='object') data.sorgerecht={};
+  const s=data.sorgerecht;
+  if(!Array.isArray(s.kinder) || !s.kinder.length) s.kinder=[{id:uid(),name:'',geb:'',gebort:''}];
+  if(!s.vormund) s.vormund={};
+  if(!s.ersatz) s.ersatz={};
+  return s;
+}
+function saveCustody(){ localStorage.setItem(STORE,JSON.stringify(data)); }
+
+function renderCustody(sec,body){
+  const s=getCustody();
+
+  function fieldRow(host,defs,obj,onSave){
+    const grid=el('div','field-grid');
+    defs.forEach(d=>{
+      const f=el('div','field'+(d.full?' full':''));
+      f.appendChild(el('label',null,d.l));
+      const inp= d.area? el('textarea') : el('input');
+      if(!d.area) inp.type='text';
+      inp.placeholder=d.ph||'';
+      inp.value=obj[d.k]||'';
+      inp.oninput=()=>{obj[d.k]=inp.value;onSave();};
+      f.appendChild(inp);grid.appendChild(f);
+    });
+    host.appendChild(grid);
+  }
+
+  // -- Verfasser / Eltern --
+  body.appendChild(el('label',null,'Verfasser / sorgeberechtigte Person'));
+  fieldRow(body,[
+    {k:'elternname',l:'Name',ph:'wird aus „Persönliche Daten" vorgeschlagen'},
+    {k:'elterngeb',l:'Geburtsdatum'},
+    {k:'elternadr',l:'Anschrift',full:true},
+    {k:'zweitelternteil',l:'Weiterer sorgeberechtigter Elternteil (falls vorhanden)',full:true}
+  ],s,saveCustody);
+
+  // -- Kinder --
+  const kLabel=el('label',null,'Kinder');kLabel.style.cssText='display:block;margin-top:18px';
+  body.appendChild(kLabel);
+  const kList=el('div');kList.id='custodyKids';body.appendChild(kList);
+  s.kinder.forEach(k=>kList.appendChild(buildKid(k,s,kList)));
+  const addKid=el('button','add-row','+ Weiteres Kind hinzufügen');
+  addKid.onclick=()=>{const k={id:uid(),name:'',geb:'',gebort:''};s.kinder.push(k);saveCustody();kList.appendChild(buildKid(k,s,kList));};
+  body.appendChild(addKid);
+
+  // -- Vormund --
+  const vLabel=el('label',null,'Benannter Vormund (§ 1782 BGB)');vLabel.style.cssText='display:block;margin-top:20px';
+  body.appendChild(vLabel);
+  fieldRow(body,[
+    {k:'name',l:'Name des Vormunds'},
+    {k:'geb',l:'Geburtsdatum'},
+    {k:'adr',l:'Anschrift',full:true},
+    {k:'verhaeltnis',l:'Verhältnis zum Kind',ph:'z. B. Tante, Patenonkel, Freundin'}
+  ],s.vormund,saveCustody);
+
+  // -- Ersatzvormund --
+  const eLabel=el('label',null,'Ersatzvormund (falls der Vormund ausfällt)');eLabel.style.cssText='display:block;margin-top:18px';
+  body.appendChild(eLabel);
+  fieldRow(body,[
+    {k:'name',l:'Name des Ersatzvormunds'},
+    {k:'geb',l:'Geburtsdatum'},
+    {k:'adr',l:'Anschrift',full:true},
+    {k:'verhaeltnis',l:'Verhältnis zum Kind'}
+  ],s.ersatz,saveCustody);
+
+  // -- Begründung / Ausschluss / Wünsche --
+  const wLabel=el('label',null,'Begründung & persönliche Wünsche (optional)');wLabel.style.cssText='display:block;margin-top:18px';
+  body.appendChild(wLabel);
+  fieldRow(body,[
+    {k:'begruendung',l:'Warum diese Person? / Wünsche zur Erziehung',area:true,full:true,ph:'z. B. religiöse Erziehung, Verbleib im gewohnten Umfeld, Geschwister nicht trennen …'},
+    {k:'ausschluss',l:'Ausdrücklich NICHT als Vormund gewünscht (optional)',area:true,full:true,ph:'Name und ggf. kurze Begründung – § 1782 BGB erlaubt auch den Ausschluss einer Person'},
+    {k:'ort',l:'Ort der Errichtung'},
+    {k:'aufbewahrung',l:'Aufbewahrungsort des Originals',ph:'z. B. Notar, Tresor, Nachlassgericht'}
+  ],s,saveCustody);
+
+  // -- Druckknopf --
+  const printBtn=el('button','add-row','⎙ Sorgerechtsverfügung als Abschreibvorlage drucken');
+  printBtn.style.cssText='margin-top:16px;border-style:solid';
+  printBtn.onclick=()=>printCustody(s);
+  body.appendChild(printBtn);
+
+  // rechtlicher Hinweis
+  const note=el('p','qr-note');
+  note.style.marginTop='14px';
+  note.innerHTML='<strong>Formhinweis:</strong> Damit die Verfügung wirksam ist, muss sie entweder vollständig <strong>eigenhändig handschriftlich</strong> geschrieben, mit Ort und Datum versehen und unterschrieben werden – oder <strong>notariell beurkundet</strong> sein. Ein bloßer Ausdruck genügt der Form nicht. Bewahre das Original sicher auf und informiere die benannte Person.';
+  body.appendChild(note);
+}
+
+function buildKid(k,s,list){
+  const wrap=el('div','row-item');
+  const grid=el('div','row-grid');
+  [{k:'name',l:'Vor- und Nachname'},{k:'geb',l:'Geburtsdatum'},{k:'gebort',l:'Geburtsort'}].forEach(d=>{
+    const f=el('div','field');
+    f.appendChild(el('label',null,d.l));
+    const inp=el('input');inp.type='text';inp.value=k[d.k]||'';
+    inp.oninput=()=>{k[d.k]=inp.value;saveCustody();};
+    f.appendChild(inp);grid.appendChild(f);
+  });
+  wrap.appendChild(grid);
+  const del=el('button','row-del','✕');del.type='button';
+  del.onclick=()=>{
+    const i=s.kinder.indexOf(k);if(i>-1)s.kinder.splice(i,1);
+    if(!s.kinder.length)s.kinder.push({id:uid(),name:'',geb:'',gebort:''});
+    saveCustody();list.innerHTML='';s.kinder.forEach(kk=>list.appendChild(buildKid(kk,s,list)));
+  };
+  wrap.appendChild(del);
+  return wrap;
+}
+
+function printCustody(s){
+  const g=(data.personen)||{};
+  const v=s.vormund||{}, e=s.ersatz||{};
+  const safe=x=>esc(x||'');
+  const line=x=>x?safe(x):'__________________________';
+  const elternName = s.elternname || g.name || '';
+  const elternGeb = s.elterngeb || g.geburt || '';
+  const elternAdr = s.elternadr || g.adresse || '';
+  const heute=new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'long',year:'numeric'});
+
+  const kinderHtml = (s.kinder||[]).filter(k=>k.name||k.geb).map(k=>
+    `<li><strong>${line(k.name)}</strong>, geboren am ${line(k.geb)}${k.gebort?' in '+safe(k.gebort):''}</li>`
+  ).join('') || '<li>__________________________</li>';
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Sorgerechtsverfügung</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap');
+    body{font-family:'Inter',sans-serif;color:#2B3125;max-width:720px;margin:46px auto;padding:0 42px;line-height:1.75}
+    h1{font-family:'JetBrains Mono',monospace;font-size:1.25rem;letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid #4C5A38;padding-bottom:12px;color:#4C5A38}
+    .meta{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.1em;color:#6B7A4B;margin:6px 0 26px}
+    .blk{margin:20px 0}
+    .blk h2{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:#6B7A4B;margin-bottom:5px;font-family:'JetBrains Mono',monospace}
+    ul{margin:6px 0 6px 20px}
+    .decl{background:#F1F2EC;border-left:3px solid #6B7A4B;padding:14px 18px;border-radius:3px;margin:18px 0}
+    .legal{font-size:.8rem;color:#535B48;margin-top:30px;border-top:1px solid #C4C7B6;padding-top:14px}
+    .hand{background:#F9FAF5;border:1px dashed #8C7638;border-radius:4px;padding:14px 18px;margin:20px 0;font-size:.82rem;color:#6E5C2E}
+    .sign{margin-top:54px}
+    .sign .ln{border-top:1px solid #2B3125;padding-top:7px;font-size:.78rem;color:#535B48;max-width:340px}
+    @media print{body{margin:0;padding:28px 46px}}
+  </style></head><body>
+  <h1>Sorgerechtsverfügung</h1>
+  <div class="meta">Benennung eines Vormunds nach § 1782 BGB · Entwurf erstellt am ${heute}</div>
+
+  <div class="blk"><h2>Verfasser / sorgeberechtigte Person</h2>
+    <div><strong>${line(elternName)}</strong>, geboren am ${line(elternGeb)}</div>
+    <div>wohnhaft: ${line(elternAdr)}</div>
+    ${s.zweitelternteil?`<div>Weiterer sorgeberechtigter Elternteil: ${safe(s.zweitelternteil)}</div>`:''}
+  </div>
+
+  <div class="blk"><h2>Für meine / unsere folgenden minderjährigen Kinder</h2>
+    <ul>${kinderHtml}</ul></div>
+
+  <div class="decl"><h2>Verfügung</h2>
+    <p>Für den Fall, dass ich – bzw. beide sorgeberechtigten Elternteile – die elterliche Sorge nicht mehr ausüben kann/können
+    (insbesondere durch Tod oder dauerhafte Verhinderung), benenne ich gemäß § 1782 BGB als <strong>Vormund</strong> für die vorgenannten Kinder:</p>
+    <p style="margin-top:10px"><strong>${line(v.name)}</strong>, geboren am ${line(v.geb)},<br>
+    wohnhaft: ${line(v.adr)}${v.verhaeltnis?'<br>Verhältnis zum Kind: '+safe(v.verhaeltnis):''}</p>
+  </div>
+
+  ${(e.name)?`<div class="blk"><h2>Ersatzvormund</h2>
+    <p>Sollte die vorgenannte Person das Amt nicht übernehmen können oder wollen, benenne ich ersatzweise:</p>
+    <p style="margin-top:8px"><strong>${safe(e.name)}</strong>, geboren am ${line(e.geb)},<br>
+    wohnhaft: ${line(e.adr)}${e.verhaeltnis?'<br>Verhältnis zum Kind: '+safe(e.verhaeltnis):''}</p></div>`:''}
+
+  ${s.begruendung?`<div class="blk"><h2>Begründung & Wünsche</h2><p>${safe(s.begruendung).replace(/\n/g,'<br>')}</p></div>`:''}
+  ${s.ausschluss?`<div class="blk"><h2>Ausdrücklich nicht als Vormund gewünscht</h2><p>${safe(s.ausschluss).replace(/\n/g,'<br>')}</p></div>`:''}
+
+  <p class="legal">Diese Verfügung beruht auf § 1782 BGB (Benennung des Vormunds durch die Eltern). Sie ist nur formwirksam, wenn sie
+  entweder vollständig eigenhändig handschriftlich geschrieben und unterschrieben oder notariell beurkundet wird. Dieses Dokument
+  ersetzt keine Rechtsberatung.</p>
+
+  <div class="hand"><strong>So machst du das Dokument wirksam:</strong> Schreibe den gesamten Text oben <u>mit der Hand</u> vollständig ab,
+  ergänze <u>Ort und Datum</u> und <u>unterschreibe</u> eigenhändig. Alternativ lasse die Verfügung notariell beurkunden.
+  Dieser Ausdruck dient nur als Vorlage.</div>
+
+  <div class="sign">
+    <div>${line(s.ort)}, den ____________________</div>
+    <div class="ln" style="margin-top:46px">Eigenhändige Unterschrift der/des Sorgeberechtigten</div>
+    ${s.zweitelternteil?'<div class="ln" style="margin-top:46px">Eigenhändige Unterschrift des weiteren Elternteils</div>':''}
+  </div>
+  <script>setTimeout(()=>window.print(),400);<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+/* ============ ZUGRIFFSSCHUTZ & EMPFÄNGERVERWALTUNG ============ */
+
+/* Master-Passwort abfragen (Promise<bool>) – kryptografisch über Owner-Slot geprüft, optional Biometrie */
+let masterAuthedUntil=0;
+function askMaster(promptText){
+  return new Promise(async(resolve)=>{
+    // kurzes Zeitfenster nach erfolgreicher Prüfung (5 Min.), um nicht bei jeder Aktion neu zu fragen
+    if(Date.now()<masterAuthedUntil){ resolve(true); return; }
+    const modal=document.getElementById('masterModal');
+    const inp=document.getElementById('masterInput');
+    const msg=document.getElementById('masterMsg');
+    const okB=document.getElementById('masterOk');
+    const cancelB=document.getElementById('masterCancel');
+    const bioB=document.getElementById('masterBioBtn');
+    document.getElementById('masterPrompt').textContent=promptText||'Zum Ändern von Zugängen bitte das Master-Passwort des Owners eingeben.';
+    inp.value='';msg.textContent='';
+    modal.classList.add('show');setTimeout(()=>inp.focus(),80);
+
+    // Biometrie anbieten, falls Owner-Bio hinterlegt und Umgebung unterstützt
+    bioB.style.display='none';
+    if(envelope&&envelope.ownerBio&&await bioAvailable()){
+      bioB.style.display='flex';
+      bioB.onclick=async()=>{
+        msg.style.color='var(--ink-soft)';msg.textContent='… warte auf Bestätigung';
+        try{ const dek=await bioUnlock(envelope.ownerBio); if(dek){ vaultKey=dek; done(true); } }
+        catch(e){ msg.style.color='var(--danger)';msg.textContent='Biometrie abgebrochen oder fehlgeschlagen.'; }
+      };
+    }
+    function cleanup(){modal.classList.remove('show');okB.onclick=cancelB.onclick=inp.onkeydown=null;}
+    function done(v){cleanup();if(v){masterAuthedUntil=Date.now()+5*60*1000;}resolve(v);}
+    async function check(){
+      msg.style.color='var(--danger)';
+      const dek=await verifyMaster(inp.value);
+      if(dek){ vaultKey=dek; done(true); }
+      else{ msg.textContent='Master-Passwort nicht korrekt.'; inp.select(); }
+    }
+    okB.onclick=check;
+    cancelB.onclick=()=>done(false);
+    inp.onkeydown=e=>{if(e.key==='Enter')check();};
+  });
+}
+
+function renderSecurity(sec,body){
+  const on = !!vaultKey;
+  const state=el('div','shield-state '+(on?'on':'off'),
+    on?'⛨ Verschlüsselung AKTIV · entsperrt':'⛨ Kein Zugriffsschutz aktiv – Daten liegen unverschlüsselt');
+  body.appendChild(state);
+
+  if(!on){
+    const p=el('p','hint','Aktiviere die Verschlüsselung und lege dich als Owner mit einem Master-Passwort fest. Dieses Master-Passwort ist zugleich dein Zugang und wird für alle Änderungen an Empfängern verlangt. Danach kannst du weitere Empfänger mit eigenem, generiertem Passwort hinzufügen.');
+    body.appendChild(p);
+    const grid=el('div','field-grid');
+    const mk=(label,ph,type)=>{const f=el('div','field');f.appendChild(el('label',null,label));const i=el('input');i.type=type||'text';i.placeholder=ph||'';f.appendChild(i);grid.appendChild(f);return i;};
+    const nameI=mk('Dein Name (Owner)','z. B. Max Muster');
+    const pwI=mk('Master-Passwort festlegen','mind. 10 Zeichen','password');
+    const pw2I=mk('Master-Passwort wiederholen','','password');
+    body.appendChild(grid);
+    const genRow=el('div');genRow.style.cssText='margin-top:6px';
+    const genB=el('button','mini-gen','⟳ Starkes Master-Passwort vorschlagen');
+    genB.onclick=()=>{const g=genPassword({length:20});pwI.type='text';pw2I.type='text';pwI.value=pw2I.value=g.pw;toast('Vorschlag ('+g.entropy+' bit) – unbedingt notieren!');};
+    genRow.appendChild(genB);body.appendChild(genRow);
+    const warn=el('p','qr-note');warn.style.color='var(--danger)';
+    warn.innerHTML='<strong>Wichtig:</strong> Ohne das Master-Passwort sind die Daten unwiederbringlich verloren. Notiere es sicher (z. B. im versiegelten Dokument beim Notar), bevor du fortfährst.';
+    body.appendChild(warn);
+    const btn=el('button','btn','⛨ Verschlüsselung aktivieren');btn.style.marginTop='12px';
+    btn.onclick=async()=>{
+      if(!nameI.value.trim()){toast('Bitte Owner-Namen eingeben');return;}
+      if(pwI.value.length<10){toast('Master-Passwort zu kurz (mind. 10 Zeichen)');return;}
+      if(pwI.value!==pw2I.value){toast('Passwörter stimmen nicht überein');return;}
+      btn.disabled=true;btn.textContent='… verschlüssele';
+      data=collect();
+      const dek=await genDEK();
+      const owner=await wrapDEK(dek,pwI.value); owner.name=nameI.value.trim(); owner.owner=true; owner.id=uid();
+      const content=await encryptContent(dek,data);
+      envelope={v:1,protected:true,content,recipients:[owner]};
+      vaultKey=dek; masterAuthedUntil=Date.now()+5*60*1000;
+      localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
+      localStorage.removeItem(STORE);
+      toast('Verschlüsselung aktiviert');
+      render();
+    };
+    body.appendChild(btn);
+    return;
+  }
+
+  body.appendChild(el('p','hint','Berechtigte Empfänger – jeder öffnet den Ordner mit seinem eigenen Passwort.'));
+  const list=el('div');list.id='rcptList';body.appendChild(list);
+  function drawList(){
+    list.innerHTML='';
+    (envelope.recipients||[]).forEach(r=>{
+      const row=el('div','rcpt');
+      row.appendChild(el('span','rname',esc(r.name||'(ohne Namen)')));
+      row.appendChild(el('span','rtag'+(r.owner?' owner':''),r.owner?'OWNER':'EMPFÄNGER'));
+      const chg=el('button',null,'Passwort ändern');
+      chg.onclick=()=>changeRcptPw(r,drawList);
+      row.appendChild(chg);
+      if(!r.owner || envelope.recipients.length>1){
+        const del=el('button','rdel','Entfernen');
+        del.onclick=()=>removeRcpt(r,drawList);
+        row.appendChild(del);
+      }
+      list.appendChild(row);
+    });
+  }
+  drawList();
+
+  const addWrap=el('div');addWrap.style.marginTop='14px';
+  addWrap.appendChild(el('label',null,'Neuen Empfänger hinzufügen'));
+  const ag=el('div','field-grid');ag.style.marginTop='6px';
+  const nfield=el('div','field');const nI=el('input');nI.type='text';nI.placeholder='Name des Empfängers';nfield.appendChild(nI);ag.appendChild(nfield);
+  const pfield=el('div','field');
+  const prow=el('div');prow.style.cssText='display:flex;gap:6px';
+  const pI=el('input');pI.type='text';pI.placeholder='Passwort für diesen Empfänger';pI.style.fontFamily="'JetBrains Mono',monospace";
+  const genB=el('button','mini-gen','⟳ Generieren');
+  genB.onclick=()=>{const g=genPassword({length:24});pI.value=g.pw;toast('Starkes Passwort erzeugt ('+g.entropy+' bit)');};
+  prow.appendChild(pI);prow.appendChild(genB);pfield.appendChild(prow);ag.appendChild(pfield);
+  addWrap.appendChild(ag);
+  const addBtn=el('button','add-row','+ Empfänger hinzufügen (Master erforderlich)');addBtn.style.borderStyle='solid';
+  addBtn.onclick=async()=>{
+    if(!nI.value.trim()){toast('Bitte Namen eingeben');return;}
+    if(pI.value.length<8){toast('Passwort zu kurz (mind. 8 Zeichen)');return;}
+    if(!await askMaster('Neuen Empfänger anlegen – bitte Master-Passwort bestätigen.'))return;
+    addBtn.disabled=true;addBtn.textContent='… füge hinzu';
+    const slot=await wrapDEK(vaultKey,pI.value); slot.name=nI.value.trim(); slot.id=uid();
+    envelope.recipients.push(slot);
+    localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
+    addBtn.disabled=false;addBtn.textContent='+ Empfänger hinzufügen (Master erforderlich)';
+    const shown=pI.value; nI.value='';pI.value='';drawList();
+    toast('Empfänger hinzugefügt – Passwort notieren: '+shown);
+  };
+  addWrap.appendChild(addBtn);
+  body.appendChild(addWrap);
+
+  // Biometrie-Verwaltung (Owner-Gerät)
+  const bioWrap=el('div');bioWrap.style.marginTop='18px';bioWrap.id='bioWrap';
+  body.appendChild(bioWrap);
+  refreshBioUI(bioWrap);
+
+  const actions=el('div');actions.style.marginTop='20px';actions.style.display='flex';actions.style.gap='10px';actions.style.flexWrap='wrap';
+  const printBtn=el('button','btn ghost','⎙ Zugangsdokument drucken');
+  printBtn.onclick=()=>printAccessDoc();
+  actions.appendChild(printBtn);
+  const lockBtn=el('button','btn ghost','🔒 Jetzt sperren');
+  lockBtn.onclick=()=>{ vaultKey=null; location.reload(); };
+  actions.appendChild(lockBtn);
+  const offBtn=el('button','btn danger','⚠ Schutz aufheben');
+  offBtn.onclick=async()=>{
+    if(!await askMaster('Schutz aufheben – bitte Master-Passwort bestätigen.'))return;
+    if(!confirm('Verschlüsselung aufheben? Die Daten werden danach wieder unverschlüsselt gespeichert.'))return;
+    data=collect();
+    localStorage.setItem(STORE,JSON.stringify(data));
+    localStorage.removeItem(ENV_STORE);
+    vaultKey=null;envelope=null;masterAuthedUntil=0;
+    toast('Schutz aufgehoben');render();
+  };
+  actions.appendChild(offBtn);
+  body.appendChild(actions);
+
+  body.appendChild(el('p','qr-note','Hinweis: Ein entfernter Empfänger kann diese Datei nicht mehr öffnen. Wer jedoch eine ältere Sicherungskopie besitzt, behält damit Zugriff – für einen vollständigen Entzug den Ordner mit neuem Passwort neu verschlüsseln (Schutz aufheben und erneut aktivieren).'));
+}
+
+async function refreshBioUI(host){
+  host.innerHTML='';
+  host.appendChild(el('label',null,'Biometrische Owner-Entsperrung (dieses Gerät)'));
+  const avail=await bioAvailable();
+  if(!avail){
+    const p=el('p','qr-note');
+    p.innerHTML='Face ID / Fingerabdruck ist hier nicht verfügbar. Grund: Biometrie im Browser (WebAuthn) benötigt einen sicheren Kontext (<strong>https://</strong> oder <strong>localhost</strong>) – bei einer per Doppelklick geöffneten Datei (file://) ist sie nicht möglich. Das Master-Passwort bleibt der Zugang.';
+    host.appendChild(p);
+    return;
+  }
+  if(envelope&&envelope.ownerBio){
+    const p=el('p','qr-note');p.textContent='Aktiv: Owner kann auf diesem Gerät per Face ID / Fingerabdruck entsperren und Master-Aktionen bestätigen.';
+    host.appendChild(p);
+    const rm=el('button','btn ghost','☉ Biometrie auf diesem Gerät entfernen');
+    rm.onclick=async()=>{ if(!await askMaster('Biometrie entfernen – Master bestätigen.'))return; delete envelope.ownerBio; localStorage.setItem(ENV_STORE,JSON.stringify(envelope)); toast('Biometrie entfernt'); refreshBioUI(host); };
+    host.appendChild(rm);
+  }else{
+    const p=el('p','qr-note');p.textContent='Verfügbar: Du kannst auf diesem Gerät Face ID / Fingerabdruck als zusätzliche Owner-Entsperrung einrichten. Gerätegebunden – ersetzt nicht das Master-Passwort.';
+    host.appendChild(p);
+    const set=el('button','bio-btn','☉ Face ID / Fingerabdruck einrichten');
+    set.onclick=async()=>{
+      if(!await askMaster('Biometrie einrichten – bitte Master-Passwort bestätigen.'))return;
+      set.disabled=true;set.textContent='… folge der Geräteabfrage';
+      try{
+        const bio=await bioRegister(vaultKey);
+        envelope.ownerBio=bio;
+        localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
+        toast('Biometrie eingerichtet');
+      }catch(e){ toast('Biometrie fehlgeschlagen: '+(e.message||'nicht unterstützt')); }
+      set.disabled=false;refreshBioUI(host);
+    };
+    host.appendChild(set);
+  }
+}
+
+async function changeRcptPw(r,redraw){
+  if(!await askMaster('Passwort von „'+r.name+'" neu vergeben – bitte Master-Passwort bestätigen.'))return;
+  const g=genPassword({length:24});
+  const np=prompt('Neues Passwort für „'+r.name+'" (mind. 8 Zeichen)\n\nVorschlag (stark, '+g.entropy+' bit) – bei Bedarf ersetzen:', g.pw);
+  if(np===null)return;
+  if(np.length<8){toast('Passwort zu kurz');return;}
+  const idx=envelope.recipients.indexOf(r);
+  const slot=await wrapDEK(vaultKey,np); slot.name=r.name; slot.owner=r.owner; slot.id=r.id;
+  envelope.recipients[idx]=slot;
+  localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
+  toast('Passwort geändert – notieren: '+np);redraw();
+}
+async function removeRcpt(r,redraw){
+  if(envelope.recipients.length<=1){toast('Mindestens ein Empfänger muss bleiben');return;}
+  if(!await askMaster('Empfänger „'+r.name+'" entfernen – bitte Master-Passwort bestätigen.'))return;
+  if(!confirm('Empfänger „'+r.name+'" entfernen? Dessen Passwort öffnet den Ordner dann nicht mehr.'))return;
+  envelope.recipients=envelope.recipients.filter(x=>x!==r);
+  localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
+  toast('Empfänger entfernt');redraw();
+}
+
+function printAccessDoc(){
+  const names=(envelope.recipients||[]).map(r=>`<li><strong>${esc(r.name||'')}</strong>${r.owner?' — Owner':''}</li>`).join('');
+  const heute=new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'long',year:'numeric'});
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Zugangsdokument</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap');
+    body{font-family:'Inter',sans-serif;color:#2B3125;max-width:700px;margin:46px auto;padding:0 42px;line-height:1.7}
+    h1{font-family:'JetBrains Mono',monospace;font-size:1.2rem;letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid #4C5A38;padding-bottom:12px;color:#4C5A38}
+    .meta{font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:.1em;color:#6B7A4B;margin:6px 0 26px}
+    .box{background:#F1F2EC;border-left:3px solid #6B7A4B;padding:14px 18px;border-radius:3px;margin:18px 0}
+    .seal{border:1px dashed #8C7638;border-radius:4px;padding:18px;margin:22px 0;background:#F9FAF5}
+    .seal .ln{border-bottom:1px solid #2B3125;height:26px;margin:12px 0}
+    .legal{font-size:.8rem;color:#535B48;margin-top:28px;border-top:1px solid #C4C7B6;padding-top:14px}
+    @media print{body{margin:0;padding:28px 46px}}
+  </style></head><body>
+  <h1>Zugangsdokument · Notfallordner</h1>
+  <div class="meta">Erstellt am ${heute} · vertraulich</div>
+  <p>Dieser digitale Notfallordner ist verschlüsselt. Zugang erhält nur, wer über ein gültiges persönliches Passwort verfügt.</p>
+  <div class="box"><strong>Berechtigte Empfänger:</strong><ul>${names}</ul></div>
+  <div class="seal">
+    <strong>Versiegelter Passwort-Eintrag</strong> (hier von Hand eintragen und verschließen):
+    <div>Empfänger / Bezeichnung:</div><div class="ln"></div>
+    <div>Passwort:</div><div class="ln"></div>
+    <div>Fundort der Datei:</div><div class="ln"></div>
+  </div>
+  <p class="legal">Aus Sicherheitsgründen werden die Passwörter selbst nicht digital gedruckt. Trage das für den Todesfall bestimmte Passwort handschriftlich in das Feld oben ein und hinterlege dieses Dokument versiegelt (z. B. beim Notar, im Bankschließfach oder Tresor). Wer dieses Dokument im Erbfall erhält, kann damit auf den Ordner zugreifen.</p>
+  <script>setTimeout(()=>window.print(),400);<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+
+
+
+
+function buildRow(sec,vals){
+  const item=el('div','row-item');
+  const grid=el('div','row-grid');
+  sec.repeat.cols.forEach(c=>{
+    const f=el('div','field');
+    f.appendChild(el('label',null,c.l));
+    if(c.pw){
+      const pw=el('div','pw-wrap');
+      const inp=el('input');inp.type='password';inp.dataset.col=c.k;inp.value=vals[c.k]||'';inp.oninput=persist;inp.placeholder=c.ph||'';
+      const tog=el('button','pw-toggle','ZEIGEN');tog.type='button';
+      tog.onclick=()=>{if(inp.type==='password'){inp.type='text';tog.textContent='VERB.';}else{inp.type='password';tog.textContent='ZEIGEN';}};
+      pw.appendChild(inp);pw.appendChild(tog);f.appendChild(pw);
+    }else{
+      const inp=el('input');inp.type='text';inp.dataset.col=c.k;inp.value=vals[c.k]||'';inp.oninput=persist;inp.placeholder=c.ph||'';
+      f.appendChild(inp);
+    }
+    grid.appendChild(f);
+  });
+  item.appendChild(grid);
+  const del=el('button','row-del','✕');del.type='button';
+  del.onclick=()=>{const p=item.parentNode;item.remove();if(!p.children.length)p.appendChild(buildRow(sec,{}));persist();};
+  item.appendChild(del);
+  if(sec.repeat.power){
+    const pbtn=el('button','add-row','⎙ Diese Vollmacht als Dokument drucken');
+    pbtn.type='button';pbtn.style.marginTop='12px';pbtn.style.borderStyle='solid';
+    pbtn.onclick=()=>{
+      const r={};item.querySelectorAll('[data-col]').forEach(inp=>r[inp.dataset.col]=inp.value);
+      printPower(r);
+    };
+    item.appendChild(pbtn);
+  }
+  return item;
+}
+
+/* ============ VOLLMACHT-DOKUMENT ============ */
+function printPower(r){
+  const g=(data.personen)||{};
+  const safe=s=>(s||'__________________________').toString().replace(/[<>&]/g,'');
+  const heute=new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'long',year:'numeric'});
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Vollmacht</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap');
+    body{font-family:'Inter',sans-serif;color:#2B3125;max-width:720px;margin:48px auto;padding:0 40px;line-height:1.7}
+    h1{font-family:'JetBrains Mono',monospace;font-size:1.3rem;letter-spacing:.12em;text-transform:uppercase;border-bottom:2px solid #4C5A38;padding-bottom:12px;color:#4C5A38}
+    .meta{font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.1em;color:#6B7A4B;margin:6px 0 30px}
+    .blk{margin:22px 0}
+    .blk h2{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:#6B7A4B;margin-bottom:4px;font-family:'JetBrains Mono',monospace}
+    .val{font-size:1.02rem;font-weight:600}
+    .scope{background:#F1F2EC;border-left:3px solid #6B7A4B;padding:14px 18px;border-radius:3px;margin:18px 0}
+    .legal{font-size:.82rem;color:#535B48;margin-top:34px;border-top:1px solid #C4C7B6;padding-top:16px}
+    .sign{display:flex;gap:50px;margin-top:60px}
+    .sign div{flex:1;border-top:1px solid #2B3125;padding-top:8px;font-size:.78rem;color:#535B48}
+    @media print{body{margin:0;padding:30px 50px}}
+  </style></head><body>
+  <h1>${safe(r.typ)||'Vollmacht'}</h1>
+  <div class="meta">Erstellt am ${heute} · Status: ${safe(r.status)||'Entwurf'}</div>
+
+  <div class="blk"><h2>Vollmachtgeber / Vollmachtgeberin</h2>
+    <div class="val">${safe(g.name)}</div>
+    <div>geb. ${safe(g.geburt)} · ${safe(g.adresse)}</div></div>
+
+  <div class="blk"><h2>Hiermit bevollmächtige ich</h2>
+    <div class="val">${safe(r.bevoll)}</div>
+    <div>geb. ${safe(r.bgeb)} · ${safe(r.badr)}</div></div>
+
+  <div class="scope"><h2>Umfang der Vollmacht</h2>
+    <div>${safe(r.umfang)||'Den/die Bevollmächtigte/n in den nachstehend bezeichneten Angelegenheiten zu vertreten.'}</div></div>
+
+  <div class="blk"><h2>Gültigkeit</h2><div>${safe(r.gueltig)||'Bis auf Widerruf'}</div></div>
+  ${r.ersatz?`<div class="blk"><h2>Ersatzbevollmächtigte/r</h2><div class="val">${safe(r.ersatz)}</div></div>`:''}
+
+  <p class="legal">Die bevollmächtigte Person ist berechtigt, mich im genannten Umfang rechtsgeschäftlich zu vertreten.
+  Diese Vollmacht gilt nur mit eigenhändiger Unterschrift des Vollmachtgebers. Je nach Art und Zweck kann eine notarielle
+  Beglaubigung erforderlich sein. Dieses Dokument ersetzt keine Rechtsberatung.</p>
+
+  <div class="sign">
+    <div>Ort, Datum &nbsp; · &nbsp; Unterschrift Vollmachtgeber/in</div>
+    <div>Unterschrift Bevollmächtigte/r (zur Annahme)</div>
+  </div>
+  <script>setTimeout(()=>window.print(),400);<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+/* ============ COLLECT / SAVE / IMPORT ============ */
+function collect(){
+  const out={};
+  SCHEMA.forEach(sec=>{
+    if(sec.security){ return; }   // Schutz-Sektion hat keine Inhaltsdaten
+    if(sec.ledger || sec.vault || sec.qr || sec.custody){
+      // Diese Sektionen verwalten ihren Zustand direkt in data – unverändert übernehmen
+      if(sec.ledger) out[sec.id]=data[sec.id]||{groups:JSON.parse(JSON.stringify(LEDGER_DEFAULT))};
+      else out[sec.id]=data[sec.id]||{};
+      return;
+    }
+    out[sec.id]={};
+    document.querySelectorAll(`[data-sec="${sec.id}"][data-key]`).forEach(inp=>{out[sec.id][inp.dataset.key]=inp.value;});
+    const rowsBox=document.querySelector(`.rows[data-sec="${sec.id}"]`);
+    if(rowsBox){
+      const arr=[];
+      rowsBox.querySelectorAll('.row-item').forEach(it=>{
+        const r={};let any=false;
+        it.querySelectorAll('[data-col]').forEach(inp=>{r[inp.dataset.col]=inp.value;if(inp.value.trim())any=true;});
+        if(any)arr.push(r);
+      });
+      out[sec.id]._rows=arr;
+    }
+  });
+  return out;
+}
+
+async function saveData(){
+  if(vaultKey){
+    // geschützt: aktuellen Stand verschlüsseln und Umschlag exportieren
+    data=collect();
+    const content=await encryptContent(vaultKey,data);
+    envelope={...envelope,v:1,protected:true,content};
+    localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
+    const blob=new Blob([JSON.stringify(envelope,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');const d=new Date().toISOString().slice(0,10);
+    a.href=url;a.download=`Notfallordner_verschluesselt_${d}.json`;a.click();
+    URL.revokeObjectURL(url);
+    toast('Verschlüsselte Sicherung gespeichert');
+    return;
+  }
+  persist();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const d=new Date().toISOString().slice(0,10);
+  a.href=url;a.download=`Notfallordner_${d}.json`;a.click();
+  URL.revokeObjectURL(url);
+  toast('Sicherung gespeichert · '+a.download);
+}
+
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const obj=JSON.parse(ev.target.result);
+      if(obj && obj.protected && Array.isArray(obj.recipients)){
+        // verschlüsselter Umschlag: übernehmen und neu laden -> Gatekeeper fragt Passwort
+        localStorage.setItem(ENV_STORE,JSON.stringify(obj));
+        localStorage.removeItem(STORE);
+        toast('Verschlüsselte Sicherung geladen – bitte Passwort eingeben');
+        setTimeout(()=>location.reload(),700);
+        return;
+      }
+      data=obj;
+      if(vaultKey){ persist(); } else { localStorage.setItem(STORE,JSON.stringify(data)); }
+      render();toast('Sicherung geladen');
+    }
+    catch(err){toast('Datei konnte nicht gelesen werden');}
+  };
+  r.readAsText(file);e.target.value='';
+}
+
+function wipeData(){
+  if(confirm('Wirklich ALLE eingegebenen Daten löschen? Erstelle vorher ggf. eine Sicherung.')){
+    localStorage.removeItem(STORE);
+    if(vaultKey){ data={}; persist(); }
+    else { data={}; }
+    render();toast('Alle Daten gelöscht');
+  }
+}
+
+function toggleAll(){
+  const cards=document.querySelectorAll('section.card');
+  const anyOpen=[...cards].some(c=>!c.classList.contains('collapsed'));
+  cards.forEach(c=>c.classList.toggle('collapsed',anyOpen));
+}
+
+/* ============ PDF-EXPORT ============ */
+function exportPDF(){
+  const showSecrets = confirm(
+    'PDF-Export\n\nSollen Passwörter, PINs und andere Geheimfelder im PDF SICHTBAR sein?\n\n'+
+    '• OK  = sichtbar (z. B. für versiegelte Hinterlegung beim Notar)\n'+
+    '• Abbrechen = verdeckt (Geheimfelder bleiben unkenntlich)'
+  );
+  // alles aufklappen
+  document.querySelectorAll('section.card').forEach(c=>c.classList.remove('collapsed'));
+  document.querySelectorAll('.cat').forEach(c=>c.classList.remove('collapsed'));
+  // Geheimfelder behandeln
+  const secretInputs=[...document.querySelectorAll('.pw-wrap input, .pw-wrap textarea')];
+  const restore=[];
+  secretInputs.forEach(inp=>{
+    restore.push({inp,type:inp.type,ts:inp.style.webkitTextSecurity});
+    if(showSecrets){ if(inp.tagName==='INPUT')inp.type='text'; inp.style.webkitTextSecurity='none'; }
+    else { if(inp.tagName==='INPUT')inp.type='password'; inp.style.webkitTextSecurity='disc'; }
+  });
+  // Hinweisbanner für den Ausdruck
+  const banner=document.createElement('div');
+  banner.id='printBanner';
+  banner.style.cssText='margin:0 0 18px;padding:12px 16px;border:1px solid #4C5A38;border-radius:4px;font-family:monospace;font-size:.72rem;letter-spacing:.05em;color:#4C5A38;background:#F1F2EC';
+  banner.textContent='NOTFALLORDNER · Vertrauliches Dokument · Erstellt am '+new Date().toLocaleDateString('de-DE')+(showSecrets?' · enthält Zugangsdaten':' · Geheimfelder verdeckt');
+  const main=document.getElementById('sections');
+  main.parentNode.insertBefore(banner,main);
+
+  setTimeout(()=>{
+    window.print();
+    // nach dem Druck zurücksetzen
+    setTimeout(()=>{
+      banner.remove();
+      restore.forEach(r=>{ if(r.inp.tagName==='INPUT')r.inp.type=r.type; r.inp.style.webkitTextSecurity=r.ts||''; });
+    },300);
+  },200);
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+/* ============ CLOCK ============ */
+function tick(){
+  const n=new Date();
+  document.getElementById('clock').textContent=n.toLocaleTimeString('de-DE');
+}
+setInterval(tick,1000);tick();
+
+/* ============ INITIALISIERUNG & GATEKEEPER ============ */
+function boot(){
+  if(isProtected()){
+    try{ envelope = JSON.parse(localStorage.getItem(ENV_STORE)); }catch(e){ envelope=null; }
+    document.body.classList.add('locked');
+    const gp=document.getElementById('gatePass'), gm=document.getElementById('gateMsg'), gb=document.getElementById('gateBtn'), gbio=document.getElementById('gateBioBtn');
+    const openUp=(res)=>{ vaultKey=res.dek; data=res.data||{}; document.body.classList.remove('locked'); gp.value=''; render(); };
+    const doUnlock=async()=>{
+      gm.textContent='';
+      const pw=gp.value; if(!pw){gm.textContent='Bitte Passwort eingeben.';return;}
+      gb.disabled=true; gb.textContent='… prüfe';
+      const res=await tryUnlock(envelope,pw);
+      gb.disabled=false; gb.textContent='▸ Entsperren';
+      if(res){ openUp(res); }
+      else{ gm.textContent='Passwort nicht erkannt.'; gp.select(); }
+    };
+    gb.onclick=doUnlock;
+    gp.onkeydown=e=>{if(e.key==='Enter')doUnlock();};
+    setTimeout(()=>gp.focus(),100);
+    // Biometrie anbieten, falls Owner-Bio hinterlegt & Umgebung passt
+    (async()=>{
+      if(envelope&&envelope.ownerBio&&await bioAvailable()){
+        gbio.style.display='flex';
+        gbio.onclick=async()=>{
+          gm.textContent=''; gbio.disabled=true; gbio.textContent='… warte auf Bestätigung';
+          try{ const dek=await bioUnlock(envelope.ownerBio); const d=await decryptContent(dek,envelope.content); openUp({dek,data:d}); }
+          catch(e){ gm.textContent='Biometrie fehlgeschlagen – bitte Passwort verwenden.'; }
+          gbio.disabled=false; gbio.textContent='☉ Mit Face ID / Fingerabdruck';
+        };
+      }
+    })();
+  }else{
+    data=load(); render();
+  }
+}
+boot();
+
+/* ============ SAFE-DREHSCHLOSS (Sitzungs-Simulation Dateneingabe) ============ */
+(function(){
+  const dial=document.getElementById('safeDial');
+  if(!dial)return;
+  const face=dial.querySelector('.dial-face');
+  const stateLbl=document.getElementById('entryState');
+  const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+  let closed=false;      // Start: offen
+  let rot=0;
+
+  function apply(){
+    const sections=document.getElementById('sections');
+    dial.classList.toggle('locked',closed);
+    dial.classList.toggle('open',!closed);
+    dial.setAttribute('aria-pressed',closed?'true':'false');
+    document.body.classList.toggle('data-locked',closed);
+    if(sections){ try{ sections.inert=closed; }catch(e){} }
+    if(stateLbl){
+      stateLbl.textContent = closed?'DATENEINGABE GESICHERT':'DATENEINGABE OFFEN';
+      stateLbl.classList.toggle('locked-state',closed);
+    }
+  }
+  function toggle(){
+    closed=!closed;
+    // Tresorknauf drehen: geschlossen im Uhrzeigersinn, offen zurück
+    rot += closed ? 300 : -300;
+    if(!reduce){
+      dial.classList.add('spinning');
+      face.style.transform='rotate('+rot+'deg)';
+      setTimeout(()=>dial.classList.remove('spinning'),1100);
+    }
+    apply();
+    toast(closed?'Dateneingabe geschlossen · gesichert':'Dateneingabe geöffnet');
+  }
+  dial.addEventListener('click',toggle);
+  dial.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); }});
+  apply();
+})();
+
+</script>
+<script>
+/* ==== DEMO-Banner: Hinweis + Zurücksetzen ==== */
+(function(){
+  if(!localStorage.getItem('notfallordner_demo')) return;
+  var bar=document.createElement('div');
+  bar.setAttribute('role','note');
+  bar.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:400;'
+    +'display:flex;align-items:center;gap:14px;max-width:min(680px,92vw);'
+    +'padding:11px 16px;border-radius:12px;border:1px solid var(--forest,#276E75);'
+    +'background:var(--panel,#FBFCFB);color:var(--ink,#223338);'
+    +'box-shadow:0 8px 30px -12px rgba(31,91,98,.4);font:14px/1.4 ui-sans-serif,system-ui,sans-serif';
+  var txt=document.createElement('span');
+  txt.style.cssText='flex:1';
+  txt.innerHTML='<b style="color:var(--heading,#1F5B62)">Demo-Ansicht</b> – Beispieldaten sind vorausgefüllt (inkl. LBS-Vertrag mit Foto-Scan). Änderungen bleiben nur lokal in dieser Vorschau.';
+  var btn=document.createElement('button');
+  btn.textContent='Demo-Daten löschen';
+  btn.style.cssText='flex:0 0 auto;cursor:pointer;padding:7px 12px;border-radius:8px;'
+    +'border:1px solid var(--forest,#276E75);background:var(--forest,#276E75);color:#fff;'
+    +'font:600 13px ui-sans-serif,system-ui,sans-serif';
+  btn.onmouseenter=function(){btn.style.opacity='.9'};
+  btn.onmouseleave=function(){btn.style.opacity='1'};
+  btn.onclick=function(){
+    try{ localStorage.removeItem('notfallordner_v1'); localStorage.removeItem('notfallordner_demo'); }catch(e){}
+    location.reload();
+  };
+  bar.appendChild(txt); bar.appendChild(btn);
+  document.body.appendChild(bar);
+})();
+</script>
+</body>
+</html>
