@@ -189,6 +189,21 @@
   .card-body{padding:22px 24px 26px}
   .hint{font-size:.8rem;color:var(--ink-soft);margin-bottom:16px;font-style:italic}
 
+  /* ---------- Formerfordernis-Hinweise (Vollmachten) ---------- */
+  .form-note{font-size:.78rem;line-height:1.55;color:var(--ink-soft);background:var(--panel-2);
+    border:1px solid var(--line-soft);border-radius:8px;padding:12px 14px;margin:2px 0 14px}
+  .form-note b{color:var(--heading)}
+  .form-note ul{margin:8px 0 0;padding-left:18px}
+  .form-note li{margin:3px 0}
+  .form-note .k{font-weight:600}
+  .form-hint{font-size:.8rem;line-height:1.5;margin-top:12px;padding:9px 12px;border-radius:8px;
+    border-left:3px solid var(--forest);background:color-mix(in srgb,var(--forest) 8%,var(--panel))}
+  .form-hint b{color:var(--heading)}
+  .form-hint.beglaubigung{border-left-color:var(--amber);background:color-mix(in srgb,var(--amber) 9%,var(--panel))}
+  .form-hint.beglaubigung b{color:var(--amber)}
+  .form-hint.beurkundung{border-left-color:var(--danger);background:color-mix(in srgb,var(--danger) 9%,var(--panel))}
+  .form-hint.beurkundung b{color:var(--danger)}
+
   /* ---------- Fields ---------- */
   .field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px 20px}
   .field{display:flex;flex-direction:column;gap:5px}
@@ -1031,6 +1046,7 @@ function render(){
     if(sec.repeat){
       const lab=el('label',null,sec.repeat.label);lab.style.marginBottom='8px';lab.style.display='block';
       body.appendChild(lab);
+      if(sec.id==='vollmachten') body.appendChild(formLegend());
       const rows=el('div','rows');rows.dataset.sec=sec.id;body.appendChild(rows);
       const saved=(data[sec.id]&&data[sec.id]._rows)||[];
       if(saved.length)saved.forEach(r=>rows.appendChild(buildRow(sec,r)));
@@ -1860,6 +1876,37 @@ function printAccessDoc(){
 
 
 
+/* ---------- Formerfordernis je Vollmacht (allgemeine Info, keine Rechtsberatung) ---------- */
+function formRequirement(typ,umfang){
+  const s=((typ||'')+' '+(umfang||'')).toLowerCase();
+  // Zwingend notarielle Beurkundung
+  if(/immobil|grundst|grundbuch|hypothek|grundschuld|eigentumswohnung|\bhaus\b|\bwohnung\b|darlehen|\bkredit|gmbh|gesellschaftsanteil|handelsregister|schenkung/.test(s)){
+    return {level:'beurkundung', badge:'Notarielle Beurkundung nötig',
+      text:'Für Immobilien-, Darlehens- oder Gesellschaftsgeschäfte ist eine <b>notarielle Beurkundung</b> gesetzlich vorgeschrieben (z. B. § 311b BGB). Ohne sie ist die Vollmacht für diese Geschäfte unwirksam.',
+      print:'Hinweis: Für die hier genannten Geschäfte (z. B. Immobilien, Darlehen, Gesellschaftsanteile) ist eine notarielle Beurkundung gesetzlich erforderlich (§ 311b BGB).'};
+  }
+  // Öffentliche Beglaubigung empfohlen / in der Praxis nötig
+  if(/vorsorge|general|bank|konto|giro|beh(ö|oe)rde|\bamt\b|renten|versicherung/.test(s)){
+    return {level:'beglaubigung', badge:'Öffentliche Beglaubigung empfohlen',
+      text:'Rechtlich schon mit eigenhändiger Unterschrift wirksam. Für die Akzeptanz bei <b>Banken und Behörden</b> wird eine öffentliche Beglaubigung der Unterschrift (Notar oder Betreuungsbehörde) empfohlen; Banken verlangen für Kontovollmachten häufig ihr eigenes Formular.',
+      print:'Hinweis: Rechtlich mit eigenhändiger Unterschrift wirksam. Für die Akzeptanz bei Banken/Behörden empfiehlt sich eine öffentliche Beglaubigung der Unterschrift (Notar oder Betreuungsbehörde).'};
+  }
+  // Formfrei / Schriftform genügt
+  return {level:'info', badge:'Schriftform genügt',
+    text:'Diese Vollmacht ist grundsätzlich <b>formfrei</b> und schon mit eigenhändiger Unterschrift wirksam. Ein Notar ist nicht erforderlich.',
+    print:'Hinweis: Grundsätzlich formfrei – mit eigenhändiger Unterschrift wirksam. Ein Notar ist nicht erforderlich.'};
+}
+function formLegend(){
+  const box=el('div','form-note');
+  box.innerHTML='<b>Formerfordernis nach Art der Vollmacht</b> (allgemeine Info, keine Rechtsberatung):'
+    +'<ul>'
+    +'<li><span class="k">Notarielle Beurkundung zwingend</span> – Immobilien, Darlehen, GmbH-Anteile/Handelsregister (§ 311b BGB).</li>'
+    +'<li><span class="k">Öffentliche Beglaubigung empfohlen</span> – Vorsorge-/General-/Kontovollmacht, für Banken &amp; Behörden.</li>'
+    +'<li><span class="k">Schriftform genügt</span> – z. B. Gesundheitsvollmacht; Unterschrift reicht.</li>'
+    +'</ul>Der Hinweis unter jeder Vollmacht passt sich automatisch an Art und Umfang an.';
+  return box;
+}
+
 function buildRow(sec,vals){
   const item=el('div','row-item');
   const grid=el('div','row-grid');
@@ -1883,6 +1930,22 @@ function buildRow(sec,vals){
   del.onclick=()=>{const p=item.parentNode;item.remove();if(!p.children.length)p.appendChild(buildRow(sec,{}));persist();};
   item.appendChild(del);
   if(sec.repeat.power){
+    // dynamischer Formerfordernis-Hinweis, abhängig von Art + Umfang
+    const fhint=el('div','form-hint');
+    const updHint=()=>{
+      const typ=(item.querySelector('[data-col="typ"]')||{}).value||'';
+      const umf=(item.querySelector('[data-col="umfang"]')||{}).value||'';
+      const req=formRequirement(typ,umf);
+      fhint.className='form-hint '+req.level;
+      fhint.innerHTML='<b>'+req.badge+'.</b> '+req.text;
+    };
+    item.querySelectorAll('[data-col="typ"],[data-col="umfang"]').forEach(inp=>{
+      const prev=inp.oninput;
+      inp.oninput=(e)=>{ if(prev)prev(e); updHint(); };
+    });
+    updHint();
+    item.appendChild(fhint);
+
     const pbtn=el('button','add-row','⎙ Diese Vollmacht als Dokument drucken');
     pbtn.type='button';pbtn.style.marginTop='12px';pbtn.style.borderStyle='solid';
     pbtn.onclick=()=>{
@@ -1933,8 +1996,9 @@ function printPower(r){
   ${r.ersatz?`<div class="blk"><h2>Ersatzbevollmächtigte/r</h2><div class="val">${safe(r.ersatz)}</div></div>`:''}
 
   <p class="legal">Die bevollmächtigte Person ist berechtigt, mich im genannten Umfang rechtsgeschäftlich zu vertreten.
-  Diese Vollmacht gilt nur mit eigenhändiger Unterschrift des Vollmachtgebers. Je nach Art und Zweck kann eine notarielle
-  Beglaubigung erforderlich sein. Dieses Dokument ersetzt keine Rechtsberatung.</p>
+  Diese Vollmacht gilt nur mit eigenhändiger Unterschrift des Vollmachtgebers.<br>
+  ${safe(formRequirement(r.typ,r.umfang).print)}<br>
+  Dieses Dokument ersetzt keine Rechtsberatung.</p>
 
   <div class="sign">
     <div>Ort, Datum &nbsp; · &nbsp; Unterschrift Vollmachtgeber/in</div>
