@@ -1,0 +1,9 @@
+# Dev-only Test-Abhängigkeiten (npm wird nur für Tests genutzt, siehe CLAUDE.md)
+node_modules/
+
+# Betriebssystem / Editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
