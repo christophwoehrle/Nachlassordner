@@ -6,8 +6,16 @@ einzigen Datei: `index.html`.
 
 ## Schnellstart
 1. `index.html` im Browser öffnen (Doppelklick genügt).
-2. Daten eintragen – sie werden nur **lokal** gespeichert.
-3. Optional Zugriffsschutz aktivieren (Verschlüsselung + Empfänger mit eigenen Passwörtern).
+2. Beim ersten Start ein **Master-Passwort** anlegen (Pflicht – Zero-Knowledge, kein Klartext).
+3. Daten eintragen – sie werden **ausschließlich Ende-zu-Ende-verschlüsselt und nur lokal**
+   gespeichert. Optional weitere Empfänger mit eigenen Passwörtern hinzufügen.
+
+## Zero-Knowledge / Ende-zu-Ende-Verschlüsselung
+- **Kein Klartext at-rest:** Alles wird mit AES-256-GCM verschlüsselt in `localStorage` abgelegt;
+  der Schlüssel existiert nur im Speicher nach dem Entsperren. Es gibt keinen unverschlüsselten Modus.
+- **Kein Server, keine Cloud:** rein clientseitig, funktioniert offline und via `file://`.
+- **Keine Recovery:** Ohne Master-Passwort sind die Daten unwiederbringlich verloren – bewusst so.
+  Master-Passwort sicher verwahren (z. B. versiegelt beim Notar).
 
 ### Biometrie (Face ID / Fingerabdruck)
 Funktioniert nur in einem sicheren Kontext (https oder localhost), nicht unter `file://`:

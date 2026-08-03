@@ -31,7 +31,9 @@ const dom = new JSDOM(html, {
   url: 'http://localhost/',
   virtualConsole: vc,
   beforeParse(win) {
-    win.crypto = webcrypto;
+    // jsdom definiert crypto als non-writable getter -> mit defineProperty echte Web-Crypto (inkl. subtle) erzwingen.
+    try { Object.defineProperty(win, 'crypto', { value: webcrypto, configurable: true, writable: true }); }
+    catch (e) { win.crypto = webcrypto; }
     win.matchMedia = win.matchMedia || (() => ({ matches: false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} }));
     win.open = () => ({ document: { write(){}, close(){} }, focus(){}, print(){}, close(){} });
     win.print = () => {};
@@ -50,7 +52,7 @@ const dom = new JSDOM(html, {
 const { window } = dom;
 const doc = window.document;
 
-function run() {
+async function run() {
   console.log('\n── (a) Rendering ohne JS-Fehler ──');
   ok('index.html geparst, kein jsdomError beim Laden', jsErrors.length === 0);
   if (jsErrors.length) jsErrors.slice(0, 4).forEach(m => console.log('     ! ' + m));
@@ -64,9 +66,24 @@ function run() {
     'vermoegen','dokumente','digital','vollmachten','sorgerecht','wuensche','qr'];
   const ids = (SCHEMA || []).map(s => s.id);
   ok('Sektions-IDs & Reihenfolge korrekt', JSON.stringify(ids) === JSON.stringify(expected));
+
+  console.log('\n── (Zero-Knowledge) Erststart erzwingt Einrichtung ──');
+  // Frischer Start: kein Envelope -> Setup-Overlay, KEINE gerenderten Sektionen, KEIN Klartext.
+  ok('Setup-Overlay (#setupGate) erzwungen', !!doc.querySelector('#setupGate'));
+  ok('Body ist gesperrt (locked)', doc.body.classList.contains('locked'));
+  ok('Sektionen vor Einrichtung NICHT gerendert', doc.querySelector('#sections').children.length === 0);
+  ok('Kein Klartext at-rest (notfallordner_v1 leer)', !window.localStorage.getItem('notfallordner_v1'));
+
+  // Zero-Knowledge-Einrichtung durchführen (setupMaster) und danach rendern.
+  await window.eval('(async()=>{ await setupMaster("Testowner","testpasswort123",{}); render(); })()');
+  ok('Nach Einrichtung: Envelope verschlüsselt at-rest', !!window.localStorage.getItem('notfallordner_env_v1'));
+  ok('Nach Einrichtung: weiterhin KEIN Klartext', !window.localStorage.getItem('notfallordner_v1'));
+  const env = JSON.parse(window.localStorage.getItem('notfallordner_env_v1'));
+  ok('Envelope hat content.iv+ct (AES-GCM)', env && env.content && env.content.iv && env.content.ct);
+  ok('Envelope enthält KEINE Klartext-Sektionsdaten', !/Testowner-secret|"personen"|"vermoegen"/.test(env.content.ct) && !env.data);
+  ok('Owner-Slot mit PBKDF2-Salt vorhanden', env.recipients && env.recipients[0] && env.recipients[0].owner && env.recipients[0].salt);
   // render() legt Karten in #sections ab
-  const sectionCards = doc.querySelectorAll('#sections .card, #sections [data-sec]');
-  ok('#sections wurde befüllt (Karten gerendert)', doc.querySelector('#sections') && doc.querySelector('#sections').children.length >= 13);
+  ok('#sections wurde befüllt (Karten gerendert)', doc.querySelector('#sections').children.length >= 13);
 
   console.log('\n── (c) Kernflows ──');
 
@@ -141,7 +158,7 @@ function run() {
 
 // Genau einmal ausführen, sobald das Dokument bereit ist (mit Timeout-Fallback).
 let hasRun = false;
-const runOnce = () => { if (hasRun) return; hasRun = true; try { run(); } catch (e) { console.error(e); process.exit(1); } };
+const runOnce = () => { if (hasRun) return; hasRun = true; run().catch(e => { console.error(e); process.exit(1); }); };
 if (doc.readyState === 'complete') runOnce();
 else window.addEventListener('load', runOnce);
 setTimeout(runOnce, 1500);

@@ -37,16 +37,25 @@ an berechtigte Personen weitergeben wollen.
 - `<script>`-Blöcke: (1) QR-Encoder, (2) Haupt-App-Logik. Achtung: In den Dokument-Generatoren
   stehen escaped `<\/script>`-Strings – die dürfen nicht als echte Tags interpretiert werden.
 
-### Datenmodell
-- Laufzeit-State in der globalen Variable `data` (Objekt je Sektion).
+### Datenmodell (Zero-Knowledge / E2EE – kein Klartext at-rest)
+- Laufzeit-State in der globalen Variable `data` (Objekt je Sektion); Klartext existiert **nur im
+  Speicher** nach dem Entsperren.
 - Persistenz in `localStorage`:
-  - `notfallordner_v1` – **unverschlüsselter** Zustand (nur wenn Schutz AUS).
-  - `notfallordner_env_v1` – **verschlüsselter Umschlag** (wenn Schutz AN).
+  - `notfallordner_env_v1` – **verschlüsselter Umschlag** (AES-256-GCM). **Einziger** Speicherort.
+  - `notfallordner_v1` – **Alt-Klartext**. Wird nicht mehr geschrieben; existiert höchstens aus
+    Vor-ZK-Versionen und wird beim ersten `setupMaster()` migriert und **gelöscht**
+    (`legacyPlaintext()`).
+- **Pflicht-Einrichtung:** Ohne Envelope erzwingt `boot()` → `startSetup()` das Anlegen eines
+  Master-Passworts (`setupMaster()`), bevor irgendetwas gespeichert werden kann. Keine Recovery –
+  Passwortverlust = endgültiger Datenverlust (bewusst, „unumkehrbar").
 - `collect()` baut `data` aus dem DOM neu. **Wichtig:** Sektionen, die ihren State selbst
   verwalten (`ledger`, `vault`, `qr`, `custody`, `security`), werden in `collect()`
   übersprungen bzw. unverändert übernommen – sonst gehen ihre Daten beim Tippen verloren.
-- `persist()` schreibt: im geschützten Modus **verschlüsselt** (AES-GCM mit In-Memory-Schlüssel,
-  entprellt), sonst Klartext.
+- `persist()` schreibt **ausschließlich verschlüsselt** (AES-GCM, In-Memory-DEK, entprellt).
+  Ohne `vaultKey` wird **gar nichts** geschrieben. Die selbstverwalteten Save-Helfer
+  (`saveLedger/saveVault/saveCustody` + QR) rufen `persist()` – nie direkt `localStorage`.
+- Kein Klartext-Export: `saveData()` exportiert nur den Envelope; `importData()` verschlüsselt
+  eine Klartext-Sicherung sofort (nur wenn entsperrt).
 
 ### Sektionen (`SCHEMA`-Array)
 Reihenfolge & Typ:
@@ -145,7 +154,8 @@ Ein einfaches WCAG-Ratio-Skript genügt (Luminanz-Formel).
 
 ## Fallstricke / Do-nots
 - `collect()` **niemals** so ändern, dass selbstverwaltete Sektionen überschrieben werden.
-- `persist()` im geschützten Modus **nie** Klartext schreiben lassen.
+- `persist()` **nie** Klartext schreiben lassen (Zero-Knowledge). Kein neuer `localStorage.setItem(STORE,…)`.
+- Die Pflicht-Einrichtung (`startSetup`) und den „kein Klartext at-rest"-Grundsatz nicht aufweichen.
 - Escaped `<\/script>` in den Dokument-Generatoren nicht „korrigieren".
 - QR-Hintergrund weiß lassen; Druckdokumente hell lassen.
 - Rechts- und Kindersicherheitshinweise in Vollmacht/Sorgerecht/Zugangsdokument nicht entfernen.

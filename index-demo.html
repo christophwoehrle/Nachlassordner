@@ -404,15 +404,50 @@
 </head>
 <body>
 <script>
-/* ==== DEMO-SEED (nur für die Vorschau) – füllt localStorage vor dem Boot ==== */
+/* ==== ZERO-KNOWLEDGE-DEMO-BOOTSTRAP (nur Vorschau) ==== */
 (function(){
-  try{
-    var K='notfallordner_v1', ENV='notfallordner_env_v1';
-    if(localStorage.getItem(ENV)) return;          /* geschützter Modus: nichts anfassen */
-    if(localStorage.getItem(K)) return;            /* bereits Daten vorhanden: nicht überschreiben */
-    localStorage.setItem(K, "{\"personen\": {\"name\": \"Anna Musterfrau\", \"geburt\": \"12.04.1985\", \"adresse\": \"Musterstraße 12, 80331 München\", \"versnr\": \"12 120485 M 123\", \"blutgr\": \"0 Rh+\", \"_rows\": [{\"rolle\": \"Ehepartner\", \"name\": \"Thomas Musterfrau\", \"tel\": \"0170 1234567\", \"mail\": \"thomas@example.de\"}, {\"rolle\": \"Tochter\", \"name\": \"Lena Musterfrau\", \"tel\": \"0151 9876543\", \"mail\": \"lena@example.de\"}, {\"rolle\": \"Notfallkontakt / Nachbarin\", \"name\": \"Petra Klein\", \"tel\": \"089 4433221\", \"mail\": \"p.klein@example.de\"}, {\"rolle\": \"Steuerberater\", \"name\": \"Kanzlei Vogt & Partner\", \"tel\": \"089 778899\", \"mail\": \"kontakt@vogt-stb.de\"}]}, \"medizin\": {\"kasse\": \"AOK Bayern\", \"kassennr\": \"A123456789\", \"allergien\": \"Penicillin, Haselnüsse\", \"diagnosen\": \"Bluthochdruck (seit 2019)\", \"_rows\": [{\"art\": \"Medikament\", \"name\": \"Ramipril 5 mg\", \"detail\": \"1x täglich morgens\", \"tel\": \"\"}, {\"art\": \"Medikament\", \"name\": \"Vitamin D3\", \"detail\": \"1x täglich\", \"tel\": \"\"}, {\"art\": \"Arzt\", \"name\": \"Dr. med. Sabine Berg\", \"detail\": \"Hausärztin\", \"tel\": \"089 111222\"}, {\"art\": \"Arzt\", \"name\": \"Dr. Wagner\", \"detail\": \"Zahnarzt\", \"tel\": \"089 223344\"}]}, \"zugang\": {\"masterhinweis\": \"Geräte-Code im Tresor hinterlegt – kein Klartext hier\", \"_rows\": [{\"dienst\": \"Apple ID\", \"user\": \"anna@example.de\", \"pw\": \"Wolke-Sonne-42!\", \"notiz\": \"2FA an Thomas' Handy\"}, {\"dienst\": \"Online-Banking Sparkasse\", \"user\": \"anna.m\", \"pw\": \"Fluss7&Berg#Tal\", \"notiz\": \"pushTAN-App\"}]}, \"tresor\": {\"items\": [{\"id\": \"t1\", \"type\": \"pin\", \"info\": \"EC-Karte Sparkasse\", \"vals\": {\"pin\": \"4711\"}}, {\"id\": \"t2\", \"type\": \"login\", \"info\": \"E-Mail GMX\", \"vals\": {\"user\": \"anna@gmx.de\", \"pw\": \"Sommer!2024#Wolke\"}}, {\"id\": \"t3\", \"type\": \"frei\", \"info\": \"Safe-Kombination Keller\", \"vals\": {\"frei\": \"links 12 – rechts 04 – links 33\"}}, {\"id\": \"t4\", \"type\": \"pin\", \"info\": \"Handy-Code iPhone\", \"vals\": {\"pin\": \"082517\"}}, {\"id\": \"t5\", \"type\": \"login\", \"info\": \"Amazon\", \"vals\": {\"user\": \"anna@example.de\", \"pw\": \"Regen&Sturm7!Baum\"}}]}, \"finanzen\": {\"_rows\": [{\"typ\": \"Bank\", \"anbieter\": \"Sparkasse München\", \"nummer\": \"DE12 7005 0000 0012 3456 78\", \"kontakt\": \"Filiale Marienplatz\"}, {\"typ\": \"Versicherung\", \"anbieter\": \"Allianz Lebensversicherung\", \"nummer\": \"LV-445566\", \"kontakt\": \"Herr Klein, 089 555000\"}]}, \"vermoegen\": {\"groups\": [{\"id\": \"bank\", \"name\": \"Bank\", \"icon\": \"◆\", \"cats\": [{\"id\": \"kredite\", \"name\": \"Kredite\", \"entries\": [{\"bez\": \"LBS Bausparvertrag\", \"anbieter\": \"LBS\", \"nummer\": \"12345678\", \"notiz\": \"Zuteilung ab 2027 · Beleg als Foto-Scan hinterlegt\", \"scan\": \"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MjAiIGhlaWdodD0iODIwIiB2aWV3Qm94PSIwIDAgNjIwIDgyMCI+CiAgPHJlY3Qgd2lkdGg9IjYyMCIgaGVpZ2h0PSI4MjAiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNjIwIiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMjc2RTc1Ii8+CiAgPHRleHQgeD0iNDAiIHk9IjQ2IiBmb250LWZhbWlseT0iR2VvcmdpYSwgc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiNmZmZmZmYiIGZvbnQtd2VpZ2h0PSJib2xkIj5MQlMgQmF1c3Bhcmthc3NlPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSI3NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1IiBmaWxsPSIjQ0RFN0U5Ij5CYXVzcGFydmVydHJhZyAmIzgyMTE7IFZlcnRyYWdzdXJrdW5kZTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMyMjMzMzgiPlZlcnRyYWdzbnVtbWVyPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIxNzYiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhIiBmb250LXNpemU9IjI0IiBmaWxsPSIjMUY1QjYyIiBmb250LXdlaWdodD0iYm9sZCI+MTIgMzQ1IDY3ODwvdGV4dD4KICA8bGluZSB4MT0iNDAiIHkxPSIyMDAiIHgyPSI1ODAiIHkyPSIyMDAiIHN0cm9rZT0iI0NCRDlENyIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDAiIHk9IjI0MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5WZXJ0cmFnc2luaGFiZXI8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjI2MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE3IiBmaWxsPSIjMjIzMzM4Ij5Bbm5hIE11c3RlcmZyYXU8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjMwNiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5CYXVzcGFyc3VtbWU8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjMyOCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE3IiBmaWxsPSIjMjIzMzM4Ij41MC4wMDAsMDAgJiM4MzY0OzwvdGV4dD4KICA8dGV4dCB4PSIzMzAiIHk9IjMwNiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5UYXJpZjwvdGV4dD4KICA8dGV4dCB4PSIzMzAiIHk9IjMyOCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE3IiBmaWxsPSIjMjIzMzM4Ij5DbGFzc2ljIEY8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjM3MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5BYnNjaGx1c3NkYXR1bTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMzk0IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTciIGZpbGw9IiMyMjMzMzgiPjAxLjAzLjIwMTk8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIzNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNSIgZmlsbD0iIzU2NkU3NCI+R3V0aGFiZW4gKFN0YW5kIDEyLzIwMjUpPC90ZXh0PgogIDx0ZXh0IHg9IjMzMCIgeT0iMzk0IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTciIGZpbGw9IiMyMjMzMzgiPjE4LjI0MCwwMCAmIzgzNjQ7PC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSI0NTAiIHdpZHRoPSI1NDAiIGhlaWdodD0iMjMwIiBmaWxsPSIjRjJGNUY0IiBzdHJva2U9IiNEQ0U2RTQiLz4KICA8dGV4dCB4PSI2MCIgeT0iNDg2IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM1NjZFNzQiPkRpZXNlIFVya3VuZGUgaXN0IGVpbiBNdXN0ZXItU2NhbiB6dSBEZW1vbnN0cmF0aW9uc3p3ZWNrZW4uPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI1MTIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzU2NkU3NCI+SW0gZWNodGVuIE9yZG5lciBlcnNjaGVpbnQgaGllciBkYXMgYWJmb3RvZ3JhZmllcnRlIE9yaWdpbmFsZG9rdW1lbnQuPC90ZXh0PgogIDxsaW5lIHgxPSIzNjAiIHkxPSI2NDAiIHgyPSI1NjAiIHkyPSI2NDAiIHN0cm9rZT0iIzIyMzMzOCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzYwIiB5PSI2NjIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMyIgZmlsbD0iIzU2NkU3NCI+VW50ZXJzY2hyaWZ0IEJhdXNwYXJrYXNzZTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iNzcwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM4QUEwQTIiPkxCUyAmIzgyMTE7IERlbW8gJiM4MjExOyBEaWdpdGFsZXIgTm90ZmFsbG9yZG5lcjwvdGV4dD4KPC9zdmc+\"}]}, {\"id\": \"aktien\", \"name\": \"Anlage · Aktien\", \"entries\": [{\"bez\": \"Siemens AG\", \"anbieter\": \"comdirect Depot\", \"nummer\": \"DE0007236101\", \"notiz\": \"120 Stück\"}]}, {\"id\": \"etf\", \"name\": \"Anlage · ETF\", \"entries\": [{\"bez\": \"MSCI World ETF\", \"anbieter\": \"iShares (comdirect)\", \"nummer\": \"IE00B4L5Y983\", \"notiz\": \"Sparplan 300 €/Monat\"}]}, {\"id\": \"kinder\", \"name\": \"Anlage · Kinder\", \"entries\": [{\"bez\": \"Sparbuch Lena\", \"anbieter\": \"Sparkasse München\", \"nummer\": \"9988776655\", \"notiz\": \"für Ausbildung\"}]}]}, {\"id\": \"haus\", \"name\": \"Haus\", \"icon\": \"⌂\", \"cats\": [{\"id\": \"versicherung\", \"name\": \"Versicherung\", \"entries\": [{\"bez\": \"Wohngebäudeversicherung\", \"anbieter\": \"Allianz\", \"nummer\": \"WG-556677\", \"notiz\": \"jährlich fällig 01.04.\"}]}, {\"id\": \"strom\", \"name\": \"Strom\", \"entries\": [{\"bez\": \"Stromvertrag\", \"anbieter\": \"Stadtwerke München\", \"nummer\": \"SWM-4451220\", \"notiz\": \"Abschlag 95 €/Monat\"}]}, {\"id\": \"telefon\", \"name\": \"Telefon / Internet\", \"entries\": [{\"bez\": \"Magenta Zuhause L\", \"anbieter\": \"Telekom\", \"nummer\": \"TK-330022\", \"notiz\": \"Router FRITZ!Box 7590\"}]}, {\"id\": \"abwasser\", \"name\": \"Abwasser\", \"entries\": [{\"bez\": \"Abwasser / Kanal\", \"anbieter\": \"Stadtentwässerung München\", \"nummer\": \"AW-77120\", \"notiz\": \"Jahresbescheid, Grundstück Musterstr. 12\"}]}, {\"id\": \"muell\", \"name\": \"Müll\", \"entries\": [{\"bez\": \"Restmüll & Biotonne\", \"anbieter\": \"AWM München\", \"nummer\": \"AWM-338811\", \"notiz\": \"14-täglich, Abrechnung über Grundsteuer\"}]}, {\"id\": \"garten\", \"name\": \"Garten\", \"entries\": [{\"bez\": \"Gartenpflege-Vertrag\", \"anbieter\": \"Grünwerk GmbH\", \"nummer\": \"GW-2024-06\", \"notiz\": \"Heckenschnitt 2x/Jahr\"}]}, {\"id\": \"pv\", \"name\": \"PV-Anlage\", \"entries\": [{\"bez\": \"Photovoltaik 8 kWp\", \"anbieter\": \"SolarEdge / EnBW\", \"nummer\": \"PV-2023-118\", \"notiz\": \"Einspeisevergütung über EnBW\"}]}, {\"id\": \"reparaturen\", \"name\": \"Reparaturen\", \"entries\": [{\"bez\": \"Heizung Wartung\", \"anbieter\": \"Bosch Thermotechnik\", \"nummer\": \"BT-55021\", \"notiz\": \"Wartungsvertrag jährlich Oktober\"}]}, {\"id\": \"renovierungen\", \"name\": \"Renovierungen\", \"entries\": [{\"bez\": \"Bad-Sanierung 2024\", \"anbieter\": \"Fliesen Huber\", \"nummer\": \"RE-2024-11\", \"notiz\": \"Gewährleistung bis 2029, Rechnung im Ordner\"}]}]}, {\"id\": \"auto\", \"name\": \"Auto\", \"icon\": \"⊙\", \"cats\": [{\"id\": \"versicherung\", \"name\": \"Versicherung\", \"entries\": [{\"bez\": \"Kfz-Haftpflicht + Teilkasko\", \"anbieter\": \"HUK-Coburg\", \"nummer\": \"KFZ-778811\", \"notiz\": \"VW Golf · M-AB 1234 · Police als Foto-Scan hinterlegt\", \"scan\": \"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MjAiIGhlaWdodD0iODIwIiB2aWV3Qm94PSIwIDAgNjIwIDgyMCI+CiAgPHJlY3Qgd2lkdGg9IjYyMCIgaGVpZ2h0PSI4MjAiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNjIwIiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMUY1QjYyIi8+CiAgPHRleHQgeD0iNDAiIHk9IjQ2IiBmb250LWZhbWlseT0iR2VvcmdpYSwgc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiNmZmZmZmYiIGZvbnQtd2VpZ2h0PSJib2xkIj5IVUstQ29idXJnPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSI3NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1IiBmaWxsPSIjQ0RFN0U5Ij5LZnotVmVyc2ljaGVydW5nICYjODIxMTsgVmVyc2ljaGVydW5nc3NjaGVpbjwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMyMjMzMzgiPlZlcnNpY2hlcnVuZ3NzY2hlaW5udW1tZXI8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjE3NiIgZm9udC1mYW1pbHk9Ikdlb3JnaWEiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMxRjVCNjIiIGZvbnQtd2VpZ2h0PSJib2xkIj5LRlotNzc4ODExPC90ZXh0PgogIDxsaW5lIHgxPSI0MCIgeTE9IjIwMCIgeDI9IjU4MCIgeTI9IjIwMCIgc3Ryb2tlPSIjQ0JEOUQ3IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0MCIgeT0iMjQwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTUiIGZpbGw9IiM1NjZFNzQiPlZlcnNpY2hlcnVuZ3NuZWhtZXI8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjI2MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE3IiBmaWxsPSIjMjIzMzM4Ij5Bbm5hIE11c3RlcmZyYXU8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjMwNiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5GYWhyemV1ZzwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMzI4IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTciIGZpbGw9IiMyMjMzMzgiPlZXIEdvbGYgVklJSSAmIzE4MzsgTS1BQiAxMjM0PC90ZXh0PgogIDx0ZXh0IHg9IjMzMCIgeT0iMzA2IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTUiIGZpbGw9IiM1NjZFNzQiPkRlY2t1bmc8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIzMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNyIgZmlsbD0iIzIyMzMzOCI+SGFmdHBmbGljaHQgKyBUZWlsa2Fza288L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjM3MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5KYWhyZXNiZWl0cmFnPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIzOTQiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNyIgZmlsbD0iIzIyMzMzOCI+NjQyLDAwICYjODM2NDs8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIzNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNSIgZmlsbD0iIzU2NkU3NCI+TGF1ZnplaXQ8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIzOTQiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNyIgZmlsbD0iIzIyMzMzOCI+MDEuMDEuICYjODIxMTsgMzEuMTIuPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSI0NTAiIHdpZHRoPSI1NDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjJGNUY0IiBzdHJva2U9IiNEQ0U2RTQiLz4KICA8dGV4dCB4PSI2MCIgeT0iNDg2IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM1NjZFNzQiPk11c3Rlci1WZXJzaWNoZXJ1bmdzc2NoZWluIHp1IERlbW9uc3RyYXRpb25zendlY2tlbi48L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjUxMiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNTY2RTc0Ij5JbSBlY2h0ZW4gT3JkbmVyIGxpZWd0IGhpZXIgZGFzIGFiZm90b2dyYWZpZXJ0ZSBPcmlnaW5hbC48L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9Ijc3MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjOEFBMEEyIj5IVUstQ29idXJnICYjODIxMTsgRGVtbyAmIzgyMTE7IERpZ2l0YWxlciBOb3RmYWxsb3JkbmVyPC90ZXh0Pgo8L3N2Zz4=\"}]}, {\"id\": \"steuer\", \"name\": \"Steuer\", \"entries\": [{\"bez\": \"Kfz-Steuer\", \"anbieter\": \"Hauptzollamt München\", \"nummer\": \"M-AB 1234\", \"notiz\": \"178 €/Jahr, Lastschrift\"}]}]}, {\"id\": \"versicherungen\", \"name\": \"Versicherungen\", \"icon\": \"⊕\", \"cats\": [{\"id\": \"allgemein\", \"name\": \"Allgemein\", \"entries\": [{\"bez\": \"Privathaftpflicht\", \"anbieter\": \"Allianz\", \"nummer\": \"HV-998877\", \"notiz\": \"Familie, 5 Mio. Deckung\"}]}]}]}, \"dokumente\": {\"_rows\": [{\"dok\": \"Testament\", \"ort\": \"Notar Dr. Weber, München\", \"hinweis\": \"beglaubigte Kopie im Ordner\"}, {\"dok\": \"Reisepass & Personalausweis\", \"ort\": \"Schreibtisch, oberste Schublade\", \"hinweis\": \"\"}, {\"dok\": \"Grundbuchauszug\", \"ort\": \"Ordner „Haus“\", \"hinweis\": \"Flurstück 118/2\"}, {\"dok\": \"Geburtsurkunden\", \"ort\": \"Dokumentenmappe im Schrank\", \"hinweis\": \"Anna, Thomas, Lena\"}, {\"dok\": \"Heiratsurkunde\", \"ort\": \"Dokumentenmappe im Schrank\", \"hinweis\": \"\"}, {\"dok\": \"Patientenverfügung\", \"ort\": \"beim Hausarzt & im Ordner\", \"hinweis\": \"Stand 2024\"}]}, \"digital\": {\"wlan\": \"FRITZ!Box 7590 · WLAN-Passwort: Wolke-Sonne-42\", \"wunsch\": \"Facebook & Instagram in Gedenkzustand versetzen, Fotos für Familie sichern\", \"_rows\": [{\"art\": \"Gerät\", \"name\": \"iPhone 15\", \"zugang\": \"Code im Tresor\"}, {\"art\": \"Abo\", \"name\": \"Netflix\", \"zugang\": \"über Apple ID\"}]}, \"vollmachten\": {\"verwahrung\": \"Original beim Notar, Kopie im Ordner\", \"_rows\": [{\"typ\": \"Vorsorgevollmacht\", \"bevoll\": \"Thomas Musterfrau\", \"bgeb\": \"01.07.1983\", \"badr\": \"Musterstraße 12, 80331 München\", \"umfang\": \"Gesundheit, Behörden, Bankgeschäfte\", \"gueltig\": \"ab sofort\", \"ersatz\": \"Lena Musterfrau\", \"status\": \"notariell beglaubigt\"}, {\"typ\": \"Bankvollmacht / Kontovollmacht\", \"bevoll\": \"Petra Klein\", \"bgeb\": \"22.05.1979\", \"badr\": \"Musterstraße 10, 80331 München\", \"umfang\": \"Girokonto Sparkasse (nur laufende Kosten)\", \"gueltig\": \"ab sofort, bis auf Widerruf\", \"ersatz\": \"Thomas Musterfrau\", \"status\": \"unterschrieben\"}]}, \"sorgerecht\": {\"elternname\": \"Anna Musterfrau\", \"elterngeb\": \"12.04.1985\", \"elternadr\": \"Musterstraße 12, 80331 München\", \"zweitelternteil\": \"Thomas Musterfrau\", \"kinder\": [{\"id\": \"k1\", \"name\": \"Lena Musterfrau\", \"geb\": \"03.09.2015\", \"gebort\": \"München\"}, {\"id\": \"k2\", \"name\": \"Max Musterfrau\", \"geb\": \"18.06.2019\", \"gebort\": \"München\"}], \"vormund\": {\"name\": \"Sabine Berg\", \"geb\": \"14.02.1980\", \"adr\": \"Gartenweg 5, 80333 München\", \"verhaeltnis\": \"Tante\"}, \"ersatz\": {\"name\": \"Michael Musterfrau\", \"geb\": \"20.11.1978\", \"adr\": \"Seestr. 3, 82319 Starnberg\", \"verhaeltnis\": \"Onkel\"}, \"begruendung\": \"Verbleib im gewohnten Umfeld, Geschwister nicht trennen, Fortführung der Schule\", \"ausschluss\": \"\", \"ort\": \"München\", \"aufbewahrung\": \"Notar Dr. Weber\"}, \"wuensche\": {\"patverf\": \"Ja · beim Hausarzt & im Ordner\", \"vorsorge\": \"Ja · Thomas Musterfrau\", \"bestattung\": \"Seebestattung Nordsee, schlicht\", \"botschaft\": \"Passt aufeinander auf. Ich hab euch lieb.\"}}");
-    localStorage.setItem('notfallordner_demo','1');
-  }catch(e){}
+  var DEMO_PW = "demo1234";
+  var DEMO_DATA = {"personen": {"name": "Anna Musterfrau", "geburt": "12.04.1985", "adresse": "Musterstraße 12, 80331 München", "versnr": "12 120485 M 123", "blutgr": "0 Rh+", "_rows": [{"rolle": "Ehepartner", "name": "Thomas Musterfrau", "tel": "0170 1234567", "mail": "thomas@example.de"}, {"rolle": "Tochter", "name": "Lena Musterfrau", "tel": "0151 9876543", "mail": "lena@example.de"}, {"rolle": "Notfallkontakt / Nachbarin", "name": "Petra Klein", "tel": "089 4433221", "mail": "p.klein@example.de"}, {"rolle": "Steuerberater", "name": "Kanzlei Vogt & Partner", "tel": "089 778899", "mail": "kontakt@vogt-stb.de"}]}, "medizin": {"kasse": "AOK Bayern", "kassennr": "A123456789", "allergien": "Penicillin, Haselnüsse", "diagnosen": "Bluthochdruck (seit 2019)", "_rows": [{"art": "Medikament", "name": "Ramipril 5 mg", "detail": "1x täglich morgens", "tel": ""}, {"art": "Medikament", "name": "Vitamin D3", "detail": "1x täglich", "tel": ""}, {"art": "Arzt", "name": "Dr. med. Sabine Berg", "detail": "Hausärztin", "tel": "089 111222"}, {"art": "Arzt", "name": "Dr. Wagner", "detail": "Zahnarzt", "tel": "089 223344"}]}, "zugang": {"masterhinweis": "Geräte-Code im Tresor hinterlegt – kein Klartext hier", "_rows": [{"dienst": "Apple ID", "user": "anna@example.de", "pw": "Wolke-Sonne-42!", "notiz": "2FA an Thomas' Handy"}, {"dienst": "Online-Banking Sparkasse", "user": "anna.m", "pw": "Fluss7&Berg#Tal", "notiz": "pushTAN-App"}]}, "tresor": {"items": [{"id": "t1", "type": "pin", "info": "EC-Karte Sparkasse", "vals": {"pin": "4711"}}, {"id": "t2", "type": "login", "info": "E-Mail GMX", "vals": {"user": "anna@gmx.de", "pw": "Sommer!2024#Wolke"}}, {"id": "t3", "type": "frei", "info": "Safe-Kombination Keller", "vals": {"frei": "links 12 – rechts 04 – links 33"}}, {"id": "t4", "type": "pin", "info": "Handy-Code iPhone", "vals": {"pin": "082517"}}, {"id": "t5", "type": "login", "info": "Amazon", "vals": {"user": "anna@example.de", "pw": "Regen&Sturm7!Baum"}}]}, "finanzen": {"_rows": [{"typ": "Bank", "anbieter": "Sparkasse München", "nummer": "DE12 7005 0000 0012 3456 78", "kontakt": "Filiale Marienplatz"}, {"typ": "Versicherung", "anbieter": "Allianz Lebensversicherung", "nummer": "LV-445566", "kontakt": "Herr Klein, 089 555000"}]}, "vermoegen": {"groups": [{"id": "bank", "name": "Bank", "icon": "◆", "cats": [{"id": "kredite", "name": "Kredite", "entries": [{"bez": "LBS Bausparvertrag", "anbieter": "LBS", "nummer": "12345678", "notiz": "Zuteilung ab 2027 · Beleg als Foto-Scan hinterlegt", "scan": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MjAiIGhlaWdodD0iODIwIiB2aWV3Qm94PSIwIDAgNjIwIDgyMCI+CiAgPHJlY3Qgd2lkdGg9IjYyMCIgaGVpZ2h0PSI4MjAiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNjIwIiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMjc2RTc1Ii8+CiAgPHRleHQgeD0iNDAiIHk9IjQ2IiBmb250LWZhbWlseT0iR2VvcmdpYSwgc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiNmZmZmZmYiIGZvbnQtd2VpZ2h0PSJib2xkIj5MQlMgQmF1c3Bhcmthc3NlPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSI3NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1IiBmaWxsPSIjQ0RFN0U5Ij5CYXVzcGFydmVydHJhZyAmIzgyMTE7IFZlcnRyYWdzdXJrdW5kZTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMyMjMzMzgiPlZlcnRyYWdzbnVtbWVyPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIxNzYiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhIiBmb250LXNpemU9IjI0IiBmaWxsPSIjMUY1QjYyIiBmb250LXdlaWdodD0iYm9sZCI+MTIgMzQ1IDY3ODwvdGV4dD4KICA8bGluZSB4MT0iNDAiIHkxPSIyMDAiIHgyPSI1ODAiIHkyPSIyMDAiIHN0cm9rZT0iI0NCRDlENyIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iNDAiIHk9IjI0MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5WZXJ0cmFnc2luaGFiZXI8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjI2MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE3IiBmaWxsPSIjMjIzMzM4Ij5Bbm5hIE11c3RlcmZyYXU8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjMwNiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5CYXVzcGFyc3VtbWU8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjMyOCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE3IiBmaWxsPSIjMjIzMzM4Ij41MC4wMDAsMDAgJiM4MzY0OzwvdGV4dD4KICA8dGV4dCB4PSIzMzAiIHk9IjMwNiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5UYXJpZjwvdGV4dD4KICA8dGV4dCB4PSIzMzAiIHk9IjMyOCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE3IiBmaWxsPSIjMjIzMzM4Ij5DbGFzc2ljIEY8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjM3MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5BYnNjaGx1c3NkYXR1bTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMzk0IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTciIGZpbGw9IiMyMjMzMzgiPjAxLjAzLjIwMTk8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIzNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNSIgZmlsbD0iIzU2NkU3NCI+R3V0aGFiZW4gKFN0YW5kIDEyLzIwMjUpPC90ZXh0PgogIDx0ZXh0IHg9IjMzMCIgeT0iMzk0IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTciIGZpbGw9IiMyMjMzMzgiPjE4LjI0MCwwMCAmIzgzNjQ7PC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSI0NTAiIHdpZHRoPSI1NDAiIGhlaWdodD0iMjMwIiBmaWxsPSIjRjJGNUY0IiBzdHJva2U9IiNEQ0U2RTQiLz4KICA8dGV4dCB4PSI2MCIgeT0iNDg2IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM1NjZFNzQiPkRpZXNlIFVya3VuZGUgaXN0IGVpbiBNdXN0ZXItU2NhbiB6dSBEZW1vbnN0cmF0aW9uc3p3ZWNrZW4uPC90ZXh0PgogIDx0ZXh0IHg9IjYwIiB5PSI1MTIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzU2NkU3NCI+SW0gZWNodGVuIE9yZG5lciBlcnNjaGVpbnQgaGllciBkYXMgYWJmb3RvZ3JhZmllcnRlIE9yaWdpbmFsZG9rdW1lbnQuPC90ZXh0PgogIDxsaW5lIHgxPSIzNjAiIHkxPSI2NDAiIHgyPSI1NjAiIHkyPSI2NDAiIHN0cm9rZT0iIzIyMzMzOCIgc3Ryb2tlLXdpZHRoPSIxIi8+CiAgPHRleHQgeD0iMzYwIiB5PSI2NjIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMyIgZmlsbD0iIzU2NkU3NCI+VW50ZXJzY2hyaWZ0IEJhdXNwYXJrYXNzZTwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iNzcwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM4QUEwQTIiPkxCUyAmIzgyMTE7IERlbW8gJiM4MjExOyBEaWdpdGFsZXIgTm90ZmFsbG9yZG5lcjwvdGV4dD4KPC9zdmc+"}]}, {"id": "aktien", "name": "Anlage · Aktien", "entries": [{"bez": "Siemens AG", "anbieter": "comdirect Depot", "nummer": "DE0007236101", "notiz": "120 Stück"}]}, {"id": "etf", "name": "Anlage · ETF", "entries": [{"bez": "MSCI World ETF", "anbieter": "iShares (comdirect)", "nummer": "IE00B4L5Y983", "notiz": "Sparplan 300 €/Monat"}]}, {"id": "kinder", "name": "Anlage · Kinder", "entries": [{"bez": "Sparbuch Lena", "anbieter": "Sparkasse München", "nummer": "9988776655", "notiz": "für Ausbildung"}]}]}, {"id": "haus", "name": "Haus", "icon": "⌂", "cats": [{"id": "versicherung", "name": "Versicherung", "entries": [{"bez": "Wohngebäudeversicherung", "anbieter": "Allianz", "nummer": "WG-556677", "notiz": "jährlich fällig 01.04."}]}, {"id": "strom", "name": "Strom", "entries": [{"bez": "Stromvertrag", "anbieter": "Stadtwerke München", "nummer": "SWM-4451220", "notiz": "Abschlag 95 €/Monat"}]}, {"id": "telefon", "name": "Telefon / Internet", "entries": [{"bez": "Magenta Zuhause L", "anbieter": "Telekom", "nummer": "TK-330022", "notiz": "Router FRITZ!Box 7590"}]}, {"id": "abwasser", "name": "Abwasser", "entries": [{"bez": "Abwasser / Kanal", "anbieter": "Stadtentwässerung München", "nummer": "AW-77120", "notiz": "Jahresbescheid, Grundstück Musterstr. 12"}]}, {"id": "muell", "name": "Müll", "entries": [{"bez": "Restmüll & Biotonne", "anbieter": "AWM München", "nummer": "AWM-338811", "notiz": "14-täglich, Abrechnung über Grundsteuer"}]}, {"id": "garten", "name": "Garten", "entries": [{"bez": "Gartenpflege-Vertrag", "anbieter": "Grünwerk GmbH", "nummer": "GW-2024-06", "notiz": "Heckenschnitt 2x/Jahr"}]}, {"id": "pv", "name": "PV-Anlage", "entries": [{"bez": "Photovoltaik 8 kWp", "anbieter": "SolarEdge / EnBW", "nummer": "PV-2023-118", "notiz": "Einspeisevergütung über EnBW"}]}, {"id": "reparaturen", "name": "Reparaturen", "entries": [{"bez": "Heizung Wartung", "anbieter": "Bosch Thermotechnik", "nummer": "BT-55021", "notiz": "Wartungsvertrag jährlich Oktober"}]}, {"id": "renovierungen", "name": "Renovierungen", "entries": [{"bez": "Bad-Sanierung 2024", "anbieter": "Fliesen Huber", "nummer": "RE-2024-11", "notiz": "Gewährleistung bis 2029, Rechnung im Ordner"}]}]}, {"id": "auto", "name": "Auto", "icon": "⊙", "cats": [{"id": "versicherung", "name": "Versicherung", "entries": [{"bez": "Kfz-Haftpflicht + Teilkasko", "anbieter": "HUK-Coburg", "nummer": "KFZ-778811", "notiz": "VW Golf · M-AB 1234 · Police als Foto-Scan hinterlegt", "scan": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MjAiIGhlaWdodD0iODIwIiB2aWV3Qm94PSIwIDAgNjIwIDgyMCI+CiAgPHJlY3Qgd2lkdGg9IjYyMCIgaGVpZ2h0PSI4MjAiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIwIiB5PSIwIiB3aWR0aD0iNjIwIiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMUY1QjYyIi8+CiAgPHRleHQgeD0iNDAiIHk9IjQ2IiBmb250LWZhbWlseT0iR2VvcmdpYSwgc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiNmZmZmZmYiIGZvbnQtd2VpZ2h0PSJib2xkIj5IVUstQ29idXJnPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSI3NiIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE1IiBmaWxsPSIjQ0RFN0U5Ij5LZnotVmVyc2ljaGVydW5nICYjODIxMTsgVmVyc2ljaGVydW5nc3NjaGVpbjwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiMyMjMzMzgiPlZlcnNpY2hlcnVuZ3NzY2hlaW5udW1tZXI8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjE3NiIgZm9udC1mYW1pbHk9Ikdlb3JnaWEiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IiMxRjVCNjIiIGZvbnQtd2VpZ2h0PSJib2xkIj5LRlotNzc4ODExPC90ZXh0PgogIDxsaW5lIHgxPSI0MCIgeTE9IjIwMCIgeDI9IjU4MCIgeTI9IjIwMCIgc3Ryb2tlPSIjQ0JEOUQ3IiBzdHJva2Utd2lkdGg9IjEiLz4KICA8dGV4dCB4PSI0MCIgeT0iMjQwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTUiIGZpbGw9IiM1NjZFNzQiPlZlcnNpY2hlcnVuZ3NuZWhtZXI8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjI2MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE3IiBmaWxsPSIjMjIzMzM4Ij5Bbm5hIE11c3RlcmZyYXU8L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjMwNiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5GYWhyemV1ZzwvdGV4dD4KICA8dGV4dCB4PSI0MCIgeT0iMzI4IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTciIGZpbGw9IiMyMjMzMzgiPlZXIEdvbGYgVklJSSAmIzE4MzsgTS1BQiAxMjM0PC90ZXh0PgogIDx0ZXh0IHg9IjMzMCIgeT0iMzA2IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTUiIGZpbGw9IiM1NjZFNzQiPkRlY2t1bmc8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIzMjgiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNyIgZmlsbD0iIzIyMzMzOCI+SGFmdHBmbGljaHQgKyBUZWlsa2Fza288L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9IjM3MiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE1IiBmaWxsPSIjNTY2RTc0Ij5KYWhyZXNiZWl0cmFnPC90ZXh0PgogIDx0ZXh0IHg9IjQwIiB5PSIzOTQiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNyIgZmlsbD0iIzIyMzMzOCI+NjQyLDAwICYjODM2NDs8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIzNzIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNSIgZmlsbD0iIzU2NkU3NCI+TGF1ZnplaXQ8L3RleHQ+CiAgPHRleHQgeD0iMzMwIiB5PSIzOTQiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNyIgZmlsbD0iIzIyMzMzOCI+MDEuMDEuICYjODIxMTsgMzEuMTIuPC90ZXh0PgogIDxyZWN0IHg9IjQwIiB5PSI0NTAiIHdpZHRoPSI1NDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjJGNUY0IiBzdHJva2U9IiNEQ0U2RTQiLz4KICA8dGV4dCB4PSI2MCIgeT0iNDg2IiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM1NjZFNzQiPk11c3Rlci1WZXJzaWNoZXJ1bmdzc2NoZWluIHp1IERlbW9uc3RyYXRpb25zendlY2tlbi48L3RleHQ+CiAgPHRleHQgeD0iNjAiIHk9IjUxMiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNTY2RTc0Ij5JbSBlY2h0ZW4gT3JkbmVyIGxpZWd0IGhpZXIgZGFzIGFiZm90b2dyYWZpZXJ0ZSBPcmlnaW5hbC48L3RleHQ+CiAgPHRleHQgeD0iNDAiIHk9Ijc3MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmaWxsPSIjOEFBMEEyIj5IVUstQ29idXJnICYjODIxMTsgRGVtbyAmIzgyMTE7IERpZ2l0YWxlciBOb3RmYWxsb3JkbmVyPC90ZXh0Pgo8L3N2Zz4="}]}, {"id": "steuer", "name": "Steuer", "entries": [{"bez": "Kfz-Steuer", "anbieter": "Hauptzollamt München", "nummer": "M-AB 1234", "notiz": "178 €/Jahr, Lastschrift"}]}]}, {"id": "versicherungen", "name": "Versicherungen", "icon": "⊕", "cats": [{"id": "allgemein", "name": "Allgemein", "entries": [{"bez": "Privathaftpflicht", "anbieter": "Allianz", "nummer": "HV-998877", "notiz": "Familie, 5 Mio. Deckung"}]}]}]}, "dokumente": {"_rows": [{"dok": "Testament", "ort": "Notar Dr. Weber, München", "hinweis": "beglaubigte Kopie im Ordner"}, {"dok": "Reisepass & Personalausweis", "ort": "Schreibtisch, oberste Schublade", "hinweis": ""}, {"dok": "Grundbuchauszug", "ort": "Ordner „Haus“", "hinweis": "Flurstück 118/2"}, {"dok": "Geburtsurkunden", "ort": "Dokumentenmappe im Schrank", "hinweis": "Anna, Thomas, Lena"}, {"dok": "Heiratsurkunde", "ort": "Dokumentenmappe im Schrank", "hinweis": ""}, {"dok": "Patientenverfügung", "ort": "beim Hausarzt & im Ordner", "hinweis": "Stand 2024"}]}, "digital": {"wlan": "FRITZ!Box 7590 · WLAN-Passwort: Wolke-Sonne-42", "wunsch": "Facebook & Instagram in Gedenkzustand versetzen, Fotos für Familie sichern", "_rows": [{"art": "Gerät", "name": "iPhone 15", "zugang": "Code im Tresor"}, {"art": "Abo", "name": "Netflix", "zugang": "über Apple ID"}]}, "vollmachten": {"verwahrung": "Original beim Notar, Kopie im Ordner", "_rows": [{"typ": "Vorsorgevollmacht", "bevoll": "Thomas Musterfrau", "bgeb": "01.07.1983", "badr": "Musterstraße 12, 80331 München", "umfang": "Gesundheit, Behörden, Bankgeschäfte", "gueltig": "ab sofort", "ersatz": "Lena Musterfrau", "status": "notariell beglaubigt"}, {"typ": "Bankvollmacht / Kontovollmacht", "bevoll": "Petra Klein", "bgeb": "22.05.1979", "badr": "Musterstraße 10, 80331 München", "umfang": "Girokonto Sparkasse (nur laufende Kosten)", "gueltig": "ab sofort, bis auf Widerruf", "ersatz": "Thomas Musterfrau", "status": "unterschrieben"}]}, "sorgerecht": {"elternname": "Anna Musterfrau", "elterngeb": "12.04.1985", "elternadr": "Musterstraße 12, 80331 München", "zweitelternteil": "Thomas Musterfrau", "kinder": [{"id": "k1", "name": "Lena Musterfrau", "geb": "03.09.2015", "gebort": "München"}, {"id": "k2", "name": "Max Musterfrau", "geb": "18.06.2019", "gebort": "München"}], "vormund": {"name": "Sabine Berg", "geb": "14.02.1980", "adr": "Gartenweg 5, 80333 München", "verhaeltnis": "Tante"}, "ersatz": {"name": "Michael Musterfrau", "geb": "20.11.1978", "adr": "Seestr. 3, 82319 Starnberg", "verhaeltnis": "Onkel"}, "begruendung": "Verbleib im gewohnten Umfeld, Geschwister nicht trennen, Fortführung der Schule", "ausschluss": "", "ort": "München", "aufbewahrung": "Notar Dr. Weber"}, "wuensche": {"patverf": "Ja · beim Hausarzt & im Ordner", "vorsorge": "Ja · Thomas Musterfrau", "bestattung": "Seebestattung Nordsee, schlicht", "botschaft": "Passt aufeinander auf. Ich hab euch lieb."}};
+  var ENV='notfallordner_env_v1', FLAG='notfallordner_demo', CLEARED='notfallordner_demo_cleared';
+
+  window.__demoStart = async function(){
+    try{
+      // Demo bewusst gelöscht -> echtes Zero-Knowledge-Erstverhalten zeigen.
+      if(localStorage.getItem(CLEARED)){ bootNormal(); return; }
+      if(!localStorage.getItem(ENV)){
+        await setupMaster('Demo-Owner', DEMO_PW, DEMO_DATA);   // verschlüsselt, kein Klartext
+        localStorage.setItem(FLAG,'1');
+      }else{
+        var env=JSON.parse(localStorage.getItem(ENV));
+        var res=await tryUnlock(env, DEMO_PW);                 // automatisch entsperren
+        if(res){ vaultKey=res.dek; data=res.data; envelope=env; }
+      }
+      document.body.classList.remove('locked');
+      render();
+    }catch(e){ console.error('Demo-Bootstrap', e); bootNormal(); return; }
+    showDemoBanner();
+  };
+
+  function showDemoBanner(){
+    if(document.getElementById('demoBanner')) return;
+    var bar=document.createElement('div'); bar.id='demoBanner'; bar.setAttribute('role','note');
+    bar.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:250;'
+      +'display:flex;align-items:center;gap:14px;max-width:min(720px,92vw);'
+      +'padding:11px 16px;border-radius:12px;border:1px solid var(--forest,#276E75);'
+      +'background:var(--panel,#FBFCFB);color:var(--ink,#223338);'
+      +'box-shadow:0 8px 30px -12px rgba(31,91,98,.4);font:14px/1.45 ui-sans-serif,system-ui,sans-serif';
+    var txt=document.createElement('span'); txt.style.cssText='flex:1';
+    txt.innerHTML='<b style="color:var(--heading,#1F5B62)">Zero-Knowledge-Demo</b> – Beispieldaten sind Ende-zu-Ende-verschluesselt gespeichert (Master-Passwort <code>'+DEMO_PW+'</code>). Beim Neuladen wird automatisch entsperrt.';
+    var btn=document.createElement('button'); btn.textContent='Demo zuruecksetzen';
+    btn.style.cssText='flex:0 0 auto;cursor:pointer;padding:7px 12px;border-radius:8px;'
+      +'border:1px solid var(--forest,#276E75);background:var(--forest,#276E75);color:#fff;'
+      +'font:600 13px ui-sans-serif,system-ui,sans-serif';
+    btn.onclick=function(){
+      try{ localStorage.removeItem(ENV); localStorage.removeItem(FLAG); localStorage.removeItem('notfallordner_v1'); localStorage.setItem(CLEARED,'1'); }catch(e){}
+      location.reload();
+    };
+    bar.appendChild(txt); bar.appendChild(btn); document.body.appendChild(bar);
+  }
 })();
 </script>
 <div class="gate" id="gate">
@@ -819,27 +854,42 @@ let saveTimer = null;
 
 function isProtected(){ return !!localStorage.getItem(ENV_STORE); }
 
-function load(){
-  // Unverschlüsselter (Alt-)Zustand
-  try{ const raw=localStorage.getItem(STORE); if(raw) return JSON.parse(raw)||{}; }catch(e){}
-  return {};
+function legacyPlaintext(){
+  // Nur zur einmaligen Migration eines alten, unverschlüsselten Zustands (Vor-ZK-Versionen).
+  try{ const raw=localStorage.getItem(STORE); if(raw){ const o=JSON.parse(raw); if(o && Object.keys(o).length) return o; } }catch(e){}
+  return null;
 }
 
 function persist(){
   data = collect();
-  if(vaultKey){
-    // geschützt: verschlüsselt speichern (entprellt, nur AES-GCM – schnell)
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(async()=>{
-      try{
-        const content = await encryptContent(vaultKey, data);
-        envelope = {...envelope, v:1, protected:true, content};
-        localStorage.setItem(ENV_STORE, JSON.stringify(envelope));
-      }catch(e){ console.error('Verschlüsseltes Speichern fehlgeschlagen', e); }
-    }, 250);
-  }else{
-    localStorage.setItem(STORE, JSON.stringify(data));
-  }
+  // Zero-Knowledge: OHNE Schlüssel wird nichts geschrieben – niemals Klartext at-rest.
+  if(!vaultKey) return;
+  // verschlüsselt speichern (entprellt, nur AES-GCM – schnell)
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async()=>{
+    try{
+      const content = await encryptContent(vaultKey, data);
+      envelope = {...envelope, v:1, protected:true, content};
+      localStorage.setItem(ENV_STORE, JSON.stringify(envelope));
+    }catch(e){ console.error('Verschlüsseltes Speichern fehlgeschlagen', e); }
+  }, 250);
+}
+
+/* ---------- Zero-Knowledge-Einrichtung: Owner-Slot + Envelope anlegen ---------- */
+async function setupMaster(name, password, seedData){
+  const dek = await genDEK();
+  const owner = await wrapDEK(dek, password);
+  owner.name = (name||'Owner').toString().trim() || 'Owner';
+  owner.owner = true; owner.id = uid();
+  const seed = seedData || {};
+  const content = await encryptContent(dek, seed);
+  envelope = {v:1, protected:true, content, recipients:[owner]};
+  vaultKey = dek;
+  data = seed;
+  masterAuthedUntil = Date.now() + 5*60*1000;
+  localStorage.setItem(ENV_STORE, JSON.stringify(envelope));
+  localStorage.removeItem(STORE);   // eventuellen Alt-Klartext endgültig entfernen
+  return true;
 }
 
 /* ---------- Krypto-Kern (Web Crypto, offline) ---------- */
@@ -1098,7 +1148,7 @@ function getLedger(){
   }
   return data.vermoegen.groups;
 }
-function saveLedger(){ localStorage.setItem(STORE,JSON.stringify(data)); }
+function saveLedger(){ persist(); }   /* ZK: nur verschlüsselt */
 function uid(){ return Math.random().toString(36).slice(2,9); }
 
 function renderLedger(sec,body){
@@ -1295,7 +1345,7 @@ function getVault(){
   if(!data.tresor || !Array.isArray(data.tresor.items)) data.tresor={items:[]};
   return data.tresor.items;
 }
-function saveVault(){ localStorage.setItem(STORE,JSON.stringify(data)); }
+function saveVault(){ persist(); }   /* ZK: nur verschlüsselt */
 
 function renderVault(sec,body){
   const items=getVault();
@@ -1401,7 +1451,7 @@ function renderQR(sec,body){
   genBtn.onclick=()=>{
     const val=inp.value.trim();
     if(!val){toast('Bitte zuerst einen Inhalt eingeben');return;}
-    data.qr={type:sel.value,value:val};localStorage.setItem(STORE,JSON.stringify(data));
+    data.qr={type:sel.value,value:val};persist();   /* ZK: nur verschlüsselt */
     drawQR(stage,val);
   };
   controls.appendChild(genBtn);
@@ -1449,7 +1499,7 @@ function getCustody(){
   if(!s.ersatz) s.ersatz={};
   return s;
 }
-function saveCustody(){ localStorage.setItem(STORE,JSON.stringify(data)); }
+function saveCustody(){ persist(); }   /* ZK: nur verschlüsselt */
 
 function renderCustody(sec,body){
   const s=getCustody();
@@ -1672,7 +1722,7 @@ function askMaster(promptText){
 function renderSecurity(sec,body){
   const on = !!vaultKey;
   const state=el('div','shield-state '+(on?'on':'off'),
-    on?'⛨ Verschlüsselung AKTIV · entsperrt':'⛨ Kein Zugriffsschutz aktiv – Daten liegen unverschlüsselt');
+    on?'⛨ Zero-Knowledge aktiv · Ende-zu-Ende-verschlüsselt · entsperrt':'⛨ Einrichtung erforderlich – Ordner ist gesperrt');
   body.appendChild(state);
 
   if(!on){
@@ -1698,13 +1748,7 @@ function renderSecurity(sec,body){
       if(pwI.value!==pw2I.value){toast('Passwörter stimmen nicht überein');return;}
       btn.disabled=true;btn.textContent='… verschlüssele';
       data=collect();
-      const dek=await genDEK();
-      const owner=await wrapDEK(dek,pwI.value); owner.name=nameI.value.trim(); owner.owner=true; owner.id=uid();
-      const content=await encryptContent(dek,data);
-      envelope={v:1,protected:true,content,recipients:[owner]};
-      vaultKey=dek; masterAuthedUntil=Date.now()+5*60*1000;
-      localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
-      localStorage.removeItem(STORE);
+      await setupMaster(nameI.value.trim(), pwI.value, data);
       toast('Verschlüsselung aktiviert');
       render();
     };
@@ -1772,20 +1816,19 @@ function renderSecurity(sec,body){
   const lockBtn=el('button','btn ghost','🔒 Jetzt sperren');
   lockBtn.onclick=()=>{ vaultKey=null; location.reload(); };
   actions.appendChild(lockBtn);
-  const offBtn=el('button','btn danger','⚠ Schutz aufheben');
+  const offBtn=el('button','btn danger','⚠ Ordner unwiderruflich löschen');
   offBtn.onclick=async()=>{
-    if(!await askMaster('Schutz aufheben – bitte Master-Passwort bestätigen.'))return;
-    if(!confirm('Verschlüsselung aufheben? Die Daten werden danach wieder unverschlüsselt gespeichert.'))return;
-    data=collect();
-    localStorage.setItem(STORE,JSON.stringify(data));
+    if(!await askMaster('Löschen bestätigen – bitte Master-Passwort eingeben.'))return;
+    if(!confirm('Den GESAMTEN verschlüsselten Ordner unwiderruflich löschen? Es gibt keine Wiederherstellung.'))return;
     localStorage.removeItem(ENV_STORE);
+    localStorage.removeItem(STORE);
     vaultKey=null;envelope=null;masterAuthedUntil=0;
-    toast('Schutz aufgehoben');render();
+    location.reload();   // -> Erststart-Einrichtung
   };
   actions.appendChild(offBtn);
   body.appendChild(actions);
 
-  body.appendChild(el('p','qr-note','Hinweis: Ein entfernter Empfänger kann diese Datei nicht mehr öffnen. Wer jedoch eine ältere Sicherungskopie besitzt, behält damit Zugriff – für einen vollständigen Entzug den Ordner mit neuem Passwort neu verschlüsseln (Schutz aufheben und erneut aktivieren).'));
+  body.appendChild(el('p','qr-note','Zero-Knowledge: Es gibt keinen unverschlüsselten Modus. Ein entfernter Empfänger kann diese Datei nicht mehr öffnen; wer jedoch eine ältere Sicherungskopie besitzt, behält damit Zugriff – für einen vollständigen Entzug den Ordner mit neuem Master-Passwort neu einrichten. Ohne Master-Passwort gibt es keine Wiederherstellung.'));
 }
 
 async function refreshBioUI(host){
@@ -2128,14 +2171,8 @@ async function saveData(){
     toast('Verschlüsselte Sicherung gespeichert');
     return;
   }
-  persist();
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  const d=new Date().toISOString().slice(0,10);
-  a.href=url;a.download=`Notfallordner_${d}.json`;a.click();
-  URL.revokeObjectURL(url);
-  toast('Sicherung gespeichert · '+a.download);
+  // Zero-Knowledge: ohne Schlüssel kein (Klartext-)Export.
+  toast('Bitte zuerst die Verschlüsselung einrichten/entsperren.');
 }
 
 function importData(e){
@@ -2152,9 +2189,10 @@ function importData(e){
         setTimeout(()=>location.reload(),700);
         return;
       }
-      data=obj;
-      if(vaultKey){ persist(); } else { localStorage.setItem(STORE,JSON.stringify(data)); }
-      render();toast('Sicherung geladen');
+      // Klartext-Sicherung: nur übernehmen, wenn entsperrt – wird sofort verschlüsselt (ZK).
+      if(!vaultKey){ toast('Bitte zuerst entsperren/einrichten, dann importieren.'); return; }
+      data=obj; persist();
+      render();toast('Sicherung geladen und verschlüsselt');
     }
     catch(err){toast('Datei konnte nicht gelesen werden');}
   };
@@ -2162,11 +2200,10 @@ function importData(e){
 }
 
 function wipeData(){
-  if(confirm('Wirklich ALLE eingegebenen Daten löschen? Erstelle vorher ggf. eine Sicherung.')){
-    localStorage.removeItem(STORE);
-    if(vaultKey){ data={}; persist(); }
-    else { data={}; }
-    render();toast('Alle Daten gelöscht');
+  if(confirm('Wirklich ALLE eingegebenen Inhalte löschen? Erstelle vorher ggf. eine verschlüsselte Sicherung.')){
+    data={};
+    if(vaultKey){ persist(); }   // leerer, verschlüsselter Zustand – kein Klartext
+    render();toast('Alle Inhalte gelöscht');
   }
 }
 
@@ -2226,6 +2263,11 @@ setInterval(tick,1000);tick();
 
 /* ============ INITIALISIERUNG & GATEKEEPER ============ */
 function boot(){
+  // Erweiterungs-Hook (z. B. Demo-Bootstrap); in Produktion undefiniert.
+  if(typeof window.__demoStart === 'function'){ window.__demoStart(); return; }
+  bootNormal();
+}
+function bootNormal(){
   if(isProtected()){
     try{ envelope = JSON.parse(localStorage.getItem(ENV_STORE)); }catch(e){ envelope=null; }
     document.body.classList.add('locked');
@@ -2256,8 +2298,53 @@ function boot(){
       }
     })();
   }else{
-    data=load(); render();
+    // Zero-Knowledge: kein Klartext-Modus. Erststart erzwingt die verschlüsselte Einrichtung.
+    startSetup();
   }
+}
+
+/* ---------- Erststart-Einrichtung: Master-Passwort ist Pflicht (kein Klartext at-rest) ---------- */
+function startSetup(){
+  const legacy = legacyPlaintext();   // ggf. alten Klartext migrieren
+  const ov = el('div','gate'); ov.id='setupGate'; ov.style.display='flex';
+  const card = el('div','gate-card');
+  card.innerHTML =
+    '<div class="gate-reactor"><div class="ring"></div><div class="ring r2"></div><div class="core"></div></div>'
+    +'<h2>Zero-Knowledge-Einrichtung</h2>'
+    +'<div class="sub">Master-Passwort erstellen</div>';
+  const nameI = el('input'); nameI.type='text'; nameI.placeholder='Dein Name (Owner)'; nameI.autocomplete='off';
+  const pwI = el('input'); pwI.type='password'; pwI.placeholder='Master-Passwort (mind. 10 Zeichen)'; pwI.autocomplete='new-password'; pwI.style.marginTop='10px';
+  const pw2I = el('input'); pw2I.type='password'; pw2I.placeholder='Master-Passwort wiederholen'; pw2I.autocomplete='new-password'; pw2I.style.marginTop='10px';
+  const msg = el('div','msg');
+  const btn = el('button','btn'); btn.textContent='⛨ Verschlüsselt einrichten'; btn.style.marginTop='14px';
+  const genB = el('button','bio-btn'); genB.textContent='⟳ Starkes Master-Passwort vorschlagen'; genB.style.marginTop='10px';
+  const hint = el('div','gate-hint');
+  hint.innerHTML = (legacy?'<strong>Bestehende Daten gefunden.</strong> Sie werden bei der Einrichtung verschlüsselt übernommen.<br>':'')
+    +'<strong>Kein Server, keine Cloud, kein Klartext.</strong> Alles wird ausschließlich auf diesem Gerät Ende-zu-Ende-verschlüsselt gespeichert. '
+    +'Ohne das Master-Passwort sind die Daten <strong>unwiederbringlich verloren</strong> – es gibt keine Wiederherstellung. Notiere es sicher (z. B. versiegelt beim Notar).';
+  card.appendChild(nameI); card.appendChild(pwI); card.appendChild(pw2I); card.appendChild(msg);
+  card.appendChild(btn); card.appendChild(genB); card.appendChild(hint);
+  ov.appendChild(card); document.body.appendChild(ov);
+  document.body.classList.add('locked');
+  setTimeout(()=>nameI.focus(),100);
+
+  genB.onclick=()=>{ const g=genPassword({length:20}); pwI.type='text'; pw2I.type='text'; pwI.value=pw2I.value=g.pw; msg.style.color='var(--heading)'; msg.textContent='Vorschlag ('+g.entropy+' bit) – unbedingt notieren!'; };
+  const submit=async()=>{
+    msg.style.color='var(--danger)';
+    if(!nameI.value.trim()){ msg.textContent='Bitte Owner-Namen eingeben.'; return; }
+    if(pwI.value.length<10){ msg.textContent='Master-Passwort zu kurz (mind. 10 Zeichen).'; return; }
+    if(pwI.value!==pw2I.value){ msg.textContent='Passwörter stimmen nicht überein.'; return; }
+    btn.disabled=true; btn.textContent='… verschlüssele';
+    try{
+      await setupMaster(nameI.value.trim(), pwI.value, legacy||{});
+      ov.remove();
+      document.body.classList.remove('locked');
+      render();
+      toast(legacy?'Eingerichtet – bestehende Daten verschlüsselt übernommen':'Zero-Knowledge-Verschlüsselung eingerichtet');
+    }catch(e){ btn.disabled=false; btn.textContent='⛨ Verschlüsselt einrichten'; msg.textContent='Einrichtung fehlgeschlagen: '+(e.message||e); }
+  };
+  btn.onclick=submit;
+  pw2I.onkeydown=e=>{ if(e.key==='Enter') submit(); };
 }
 boot();
 
@@ -2300,35 +2387,6 @@ boot();
   apply();
 })();
 
-</script>
-<script>
-/* ==== DEMO-Banner: Hinweis + Zurücksetzen ==== */
-(function(){
-  if(!localStorage.getItem('notfallordner_demo')) return;
-  var bar=document.createElement('div');
-  bar.setAttribute('role','note');
-  bar.style.cssText='position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:400;'
-    +'display:flex;align-items:center;gap:14px;max-width:min(680px,92vw);'
-    +'padding:11px 16px;border-radius:12px;border:1px solid var(--forest,#276E75);'
-    +'background:var(--panel,#FBFCFB);color:var(--ink,#223338);'
-    +'box-shadow:0 8px 30px -12px rgba(31,91,98,.4);font:14px/1.4 ui-sans-serif,system-ui,sans-serif';
-  var txt=document.createElement('span');
-  txt.style.cssText='flex:1';
-  txt.innerHTML='<b style="color:var(--heading,#1F5B62)">Demo-Ansicht</b> – Beispieldaten sind vorausgefüllt (inkl. LBS-Vertrag mit Foto-Scan). Änderungen bleiben nur lokal in dieser Vorschau.';
-  var btn=document.createElement('button');
-  btn.textContent='Demo-Daten löschen';
-  btn.style.cssText='flex:0 0 auto;cursor:pointer;padding:7px 12px;border-radius:8px;'
-    +'border:1px solid var(--forest,#276E75);background:var(--forest,#276E75);color:#fff;'
-    +'font:600 13px ui-sans-serif,system-ui,sans-serif';
-  btn.onmouseenter=function(){btn.style.opacity='.9'};
-  btn.onmouseleave=function(){btn.style.opacity='1'};
-  btn.onclick=function(){
-    try{ localStorage.removeItem('notfallordner_v1'); localStorage.removeItem('notfallordner_demo'); }catch(e){}
-    location.reload();
-  };
-  bar.appendChild(txt); bar.appendChild(btn);
-  document.body.appendChild(bar);
-})();
 </script>
 </body>
 </html>

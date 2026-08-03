@@ -4,7 +4,9 @@
   "description": "Digitaler Notfallordner - offline, verschluesselt, Single-File",
   "private": true,
   "scripts": {
-    "test": "node tests/smoke.test.js",
+    "test": "node tests/smoke.test.js && node tests/crypto.test.js",
+    "test:smoke": "node tests/smoke.test.js",
+    "test:crypto": "node tests/crypto.test.js",
     "serve": "python3 -m http.server 8000"
   }
 }

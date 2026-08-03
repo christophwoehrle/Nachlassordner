@@ -807,27 +807,42 @@ let saveTimer = null;
 
 function isProtected(){ return !!localStorage.getItem(ENV_STORE); }
 
-function load(){
-  // Unverschlüsselter (Alt-)Zustand
-  try{ const raw=localStorage.getItem(STORE); if(raw) return JSON.parse(raw)||{}; }catch(e){}
-  return {};
+function legacyPlaintext(){
+  // Nur zur einmaligen Migration eines alten, unverschlüsselten Zustands (Vor-ZK-Versionen).
+  try{ const raw=localStorage.getItem(STORE); if(raw){ const o=JSON.parse(raw); if(o && Object.keys(o).length) return o; } }catch(e){}
+  return null;
 }
 
 function persist(){
   data = collect();
-  if(vaultKey){
-    // geschützt: verschlüsselt speichern (entprellt, nur AES-GCM – schnell)
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(async()=>{
-      try{
-        const content = await encryptContent(vaultKey, data);
-        envelope = {...envelope, v:1, protected:true, content};
-        localStorage.setItem(ENV_STORE, JSON.stringify(envelope));
-      }catch(e){ console.error('Verschlüsseltes Speichern fehlgeschlagen', e); }
-    }, 250);
-  }else{
-    localStorage.setItem(STORE, JSON.stringify(data));
-  }
+  // Zero-Knowledge: OHNE Schlüssel wird nichts geschrieben – niemals Klartext at-rest.
+  if(!vaultKey) return;
+  // verschlüsselt speichern (entprellt, nur AES-GCM – schnell)
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async()=>{
+    try{
+      const content = await encryptContent(vaultKey, data);
+      envelope = {...envelope, v:1, protected:true, content};
+      localStorage.setItem(ENV_STORE, JSON.stringify(envelope));
+    }catch(e){ console.error('Verschlüsseltes Speichern fehlgeschlagen', e); }
+  }, 250);
+}
+
+/* ---------- Zero-Knowledge-Einrichtung: Owner-Slot + Envelope anlegen ---------- */
+async function setupMaster(name, password, seedData){
+  const dek = await genDEK();
+  const owner = await wrapDEK(dek, password);
+  owner.name = (name||'Owner').toString().trim() || 'Owner';
+  owner.owner = true; owner.id = uid();
+  const seed = seedData || {};
+  const content = await encryptContent(dek, seed);
+  envelope = {v:1, protected:true, content, recipients:[owner]};
+  vaultKey = dek;
+  data = seed;
+  masterAuthedUntil = Date.now() + 5*60*1000;
+  localStorage.setItem(ENV_STORE, JSON.stringify(envelope));
+  localStorage.removeItem(STORE);   // eventuellen Alt-Klartext endgültig entfernen
+  return true;
 }
 
 /* ---------- Krypto-Kern (Web Crypto, offline) ---------- */
@@ -1086,7 +1101,7 @@ function getLedger(){
   }
   return data.vermoegen.groups;
 }
-function saveLedger(){ localStorage.setItem(STORE,JSON.stringify(data)); }
+function saveLedger(){ persist(); }   /* ZK: nur verschlüsselt */
 function uid(){ return Math.random().toString(36).slice(2,9); }
 
 function renderLedger(sec,body){
@@ -1283,7 +1298,7 @@ function getVault(){
   if(!data.tresor || !Array.isArray(data.tresor.items)) data.tresor={items:[]};
   return data.tresor.items;
 }
-function saveVault(){ localStorage.setItem(STORE,JSON.stringify(data)); }
+function saveVault(){ persist(); }   /* ZK: nur verschlüsselt */
 
 function renderVault(sec,body){
   const items=getVault();
@@ -1389,7 +1404,7 @@ function renderQR(sec,body){
   genBtn.onclick=()=>{
     const val=inp.value.trim();
     if(!val){toast('Bitte zuerst einen Inhalt eingeben');return;}
-    data.qr={type:sel.value,value:val};localStorage.setItem(STORE,JSON.stringify(data));
+    data.qr={type:sel.value,value:val};persist();   /* ZK: nur verschlüsselt */
     drawQR(stage,val);
   };
   controls.appendChild(genBtn);
@@ -1437,7 +1452,7 @@ function getCustody(){
   if(!s.ersatz) s.ersatz={};
   return s;
 }
-function saveCustody(){ localStorage.setItem(STORE,JSON.stringify(data)); }
+function saveCustody(){ persist(); }   /* ZK: nur verschlüsselt */
 
 function renderCustody(sec,body){
   const s=getCustody();
@@ -1660,7 +1675,7 @@ function askMaster(promptText){
 function renderSecurity(sec,body){
   const on = !!vaultKey;
   const state=el('div','shield-state '+(on?'on':'off'),
-    on?'⛨ Verschlüsselung AKTIV · entsperrt':'⛨ Kein Zugriffsschutz aktiv – Daten liegen unverschlüsselt');
+    on?'⛨ Zero-Knowledge aktiv · Ende-zu-Ende-verschlüsselt · entsperrt':'⛨ Einrichtung erforderlich – Ordner ist gesperrt');
   body.appendChild(state);
 
   if(!on){
@@ -1686,13 +1701,7 @@ function renderSecurity(sec,body){
       if(pwI.value!==pw2I.value){toast('Passwörter stimmen nicht überein');return;}
       btn.disabled=true;btn.textContent='… verschlüssele';
       data=collect();
-      const dek=await genDEK();
-      const owner=await wrapDEK(dek,pwI.value); owner.name=nameI.value.trim(); owner.owner=true; owner.id=uid();
-      const content=await encryptContent(dek,data);
-      envelope={v:1,protected:true,content,recipients:[owner]};
-      vaultKey=dek; masterAuthedUntil=Date.now()+5*60*1000;
-      localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
-      localStorage.removeItem(STORE);
+      await setupMaster(nameI.value.trim(), pwI.value, data);
       toast('Verschlüsselung aktiviert');
       render();
     };
@@ -1760,20 +1769,19 @@ function renderSecurity(sec,body){
   const lockBtn=el('button','btn ghost','🔒 Jetzt sperren');
   lockBtn.onclick=()=>{ vaultKey=null; location.reload(); };
   actions.appendChild(lockBtn);
-  const offBtn=el('button','btn danger','⚠ Schutz aufheben');
+  const offBtn=el('button','btn danger','⚠ Ordner unwiderruflich löschen');
   offBtn.onclick=async()=>{
-    if(!await askMaster('Schutz aufheben – bitte Master-Passwort bestätigen.'))return;
-    if(!confirm('Verschlüsselung aufheben? Die Daten werden danach wieder unverschlüsselt gespeichert.'))return;
-    data=collect();
-    localStorage.setItem(STORE,JSON.stringify(data));
+    if(!await askMaster('Löschen bestätigen – bitte Master-Passwort eingeben.'))return;
+    if(!confirm('Den GESAMTEN verschlüsselten Ordner unwiderruflich löschen? Es gibt keine Wiederherstellung.'))return;
     localStorage.removeItem(ENV_STORE);
+    localStorage.removeItem(STORE);
     vaultKey=null;envelope=null;masterAuthedUntil=0;
-    toast('Schutz aufgehoben');render();
+    location.reload();   // -> Erststart-Einrichtung
   };
   actions.appendChild(offBtn);
   body.appendChild(actions);
 
-  body.appendChild(el('p','qr-note','Hinweis: Ein entfernter Empfänger kann diese Datei nicht mehr öffnen. Wer jedoch eine ältere Sicherungskopie besitzt, behält damit Zugriff – für einen vollständigen Entzug den Ordner mit neuem Passwort neu verschlüsseln (Schutz aufheben und erneut aktivieren).'));
+  body.appendChild(el('p','qr-note','Zero-Knowledge: Es gibt keinen unverschlüsselten Modus. Ein entfernter Empfänger kann diese Datei nicht mehr öffnen; wer jedoch eine ältere Sicherungskopie besitzt, behält damit Zugriff – für einen vollständigen Entzug den Ordner mit neuem Master-Passwort neu einrichten. Ohne Master-Passwort gibt es keine Wiederherstellung.'));
 }
 
 async function refreshBioUI(host){
@@ -2116,14 +2124,8 @@ async function saveData(){
     toast('Verschlüsselte Sicherung gespeichert');
     return;
   }
-  persist();
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  const d=new Date().toISOString().slice(0,10);
-  a.href=url;a.download=`Notfallordner_${d}.json`;a.click();
-  URL.revokeObjectURL(url);
-  toast('Sicherung gespeichert · '+a.download);
+  // Zero-Knowledge: ohne Schlüssel kein (Klartext-)Export.
+  toast('Bitte zuerst die Verschlüsselung einrichten/entsperren.');
 }
 
 function importData(e){
@@ -2140,9 +2142,10 @@ function importData(e){
         setTimeout(()=>location.reload(),700);
         return;
       }
-      data=obj;
-      if(vaultKey){ persist(); } else { localStorage.setItem(STORE,JSON.stringify(data)); }
-      render();toast('Sicherung geladen');
+      // Klartext-Sicherung: nur übernehmen, wenn entsperrt – wird sofort verschlüsselt (ZK).
+      if(!vaultKey){ toast('Bitte zuerst entsperren/einrichten, dann importieren.'); return; }
+      data=obj; persist();
+      render();toast('Sicherung geladen und verschlüsselt');
     }
     catch(err){toast('Datei konnte nicht gelesen werden');}
   };
@@ -2150,11 +2153,10 @@ function importData(e){
 }
 
 function wipeData(){
-  if(confirm('Wirklich ALLE eingegebenen Daten löschen? Erstelle vorher ggf. eine Sicherung.')){
-    localStorage.removeItem(STORE);
-    if(vaultKey){ data={}; persist(); }
-    else { data={}; }
-    render();toast('Alle Daten gelöscht');
+  if(confirm('Wirklich ALLE eingegebenen Inhalte löschen? Erstelle vorher ggf. eine verschlüsselte Sicherung.')){
+    data={};
+    if(vaultKey){ persist(); }   // leerer, verschlüsselter Zustand – kein Klartext
+    render();toast('Alle Inhalte gelöscht');
   }
 }
 
@@ -2214,6 +2216,11 @@ setInterval(tick,1000);tick();
 
 /* ============ INITIALISIERUNG & GATEKEEPER ============ */
 function boot(){
+  // Erweiterungs-Hook (z. B. Demo-Bootstrap); in Produktion undefiniert.
+  if(typeof window.__demoStart === 'function'){ window.__demoStart(); return; }
+  bootNormal();
+}
+function bootNormal(){
   if(isProtected()){
     try{ envelope = JSON.parse(localStorage.getItem(ENV_STORE)); }catch(e){ envelope=null; }
     document.body.classList.add('locked');
@@ -2244,8 +2251,53 @@ function boot(){
       }
     })();
   }else{
-    data=load(); render();
+    // Zero-Knowledge: kein Klartext-Modus. Erststart erzwingt die verschlüsselte Einrichtung.
+    startSetup();
   }
+}
+
+/* ---------- Erststart-Einrichtung: Master-Passwort ist Pflicht (kein Klartext at-rest) ---------- */
+function startSetup(){
+  const legacy = legacyPlaintext();   // ggf. alten Klartext migrieren
+  const ov = el('div','gate'); ov.id='setupGate'; ov.style.display='flex';
+  const card = el('div','gate-card');
+  card.innerHTML =
+    '<div class="gate-reactor"><div class="ring"></div><div class="ring r2"></div><div class="core"></div></div>'
+    +'<h2>Zero-Knowledge-Einrichtung</h2>'
+    +'<div class="sub">Master-Passwort erstellen</div>';
+  const nameI = el('input'); nameI.type='text'; nameI.placeholder='Dein Name (Owner)'; nameI.autocomplete='off';
+  const pwI = el('input'); pwI.type='password'; pwI.placeholder='Master-Passwort (mind. 10 Zeichen)'; pwI.autocomplete='new-password'; pwI.style.marginTop='10px';
+  const pw2I = el('input'); pw2I.type='password'; pw2I.placeholder='Master-Passwort wiederholen'; pw2I.autocomplete='new-password'; pw2I.style.marginTop='10px';
+  const msg = el('div','msg');
+  const btn = el('button','btn'); btn.textContent='⛨ Verschlüsselt einrichten'; btn.style.marginTop='14px';
+  const genB = el('button','bio-btn'); genB.textContent='⟳ Starkes Master-Passwort vorschlagen'; genB.style.marginTop='10px';
+  const hint = el('div','gate-hint');
+  hint.innerHTML = (legacy?'<strong>Bestehende Daten gefunden.</strong> Sie werden bei der Einrichtung verschlüsselt übernommen.<br>':'')
+    +'<strong>Kein Server, keine Cloud, kein Klartext.</strong> Alles wird ausschließlich auf diesem Gerät Ende-zu-Ende-verschlüsselt gespeichert. '
+    +'Ohne das Master-Passwort sind die Daten <strong>unwiederbringlich verloren</strong> – es gibt keine Wiederherstellung. Notiere es sicher (z. B. versiegelt beim Notar).';
+  card.appendChild(nameI); card.appendChild(pwI); card.appendChild(pw2I); card.appendChild(msg);
+  card.appendChild(btn); card.appendChild(genB); card.appendChild(hint);
+  ov.appendChild(card); document.body.appendChild(ov);
+  document.body.classList.add('locked');
+  setTimeout(()=>nameI.focus(),100);
+
+  genB.onclick=()=>{ const g=genPassword({length:20}); pwI.type='text'; pw2I.type='text'; pwI.value=pw2I.value=g.pw; msg.style.color='var(--heading)'; msg.textContent='Vorschlag ('+g.entropy+' bit) – unbedingt notieren!'; };
+  const submit=async()=>{
+    msg.style.color='var(--danger)';
+    if(!nameI.value.trim()){ msg.textContent='Bitte Owner-Namen eingeben.'; return; }
+    if(pwI.value.length<10){ msg.textContent='Master-Passwort zu kurz (mind. 10 Zeichen).'; return; }
+    if(pwI.value!==pw2I.value){ msg.textContent='Passwörter stimmen nicht überein.'; return; }
+    btn.disabled=true; btn.textContent='… verschlüssele';
+    try{
+      await setupMaster(nameI.value.trim(), pwI.value, legacy||{});
+      ov.remove();
+      document.body.classList.remove('locked');
+      render();
+      toast(legacy?'Eingerichtet – bestehende Daten verschlüsselt übernommen':'Zero-Knowledge-Verschlüsselung eingerichtet');
+    }catch(e){ btn.disabled=false; btn.textContent='⛨ Verschlüsselt einrichten'; msg.textContent='Einrichtung fehlgeschlagen: '+(e.message||e); }
+  };
+  btn.onclick=submit;
+  pw2I.onkeydown=e=>{ if(e.key==='Enter') submit(); };
 }
 boot();
 
