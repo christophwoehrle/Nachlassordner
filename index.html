@@ -189,6 +189,30 @@
   .card-body{padding:22px 24px 26px}
   .hint{font-size:.8rem;color:var(--ink-soft);margin-bottom:16px;font-style:italic}
 
+  /* ---------- Erben-Ansicht (read-only) ---------- */
+  .role-banner{display:flex;align-items:center;gap:10px;margin:20px 0 4px;padding:12px 16px;
+    border-radius:10px;border:1px solid var(--forest);background:color-mix(in srgb,var(--forest) 9%,var(--panel));
+    color:var(--ink);font-size:.9rem}
+  .role-banner strong{color:var(--heading)}
+  body[data-role="heir"] #tbImport,
+  body[data-role="heir"] #tbWipe,
+  body[data-role="heir"] .add-row,
+  body[data-role="heir"] .row-del,
+  body[data-role="heir"] .entry-del,
+  body[data-role="heir"] .scan-btn,
+  body[data-role="heir"] .scan-clear,
+  body[data-role="heir"] .mini-add,
+  body[data-role="heir"] .grp-add,
+  body[data-role="heir"] .vm-type-free{display:none !important}
+  body[data-role="heir"] #sections input[readonly],
+  body[data-role="heir"] #sections textarea[readonly],
+  body[data-role="heir"] #sections select:disabled{background:var(--panel-2);cursor:default;opacity:1;color:var(--ink)}
+  .rcpt-scope{margin:4px 0 12px;padding:8px 12px;border:1px dashed var(--line);border-radius:8px;background:var(--panel-2)}
+  .rcpt-scope summary{cursor:pointer;font-size:.82rem;color:var(--forest);font-weight:600}
+  .scope-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 14px;margin-top:10px}
+  .scope-item,.scope-all{display:flex;align-items:center;gap:7px;font-size:.84rem;color:var(--ink)}
+  .scope-all{grid-column:1/-1;font-weight:600;border-bottom:1px solid var(--line-soft);padding-bottom:6px;margin-bottom:4px}
+
   /* ---------- Formerfordernis-Hinweise (Vollmachten) ---------- */
   .form-note{font-size:.78rem;line-height:1.55;color:var(--ink-soft);background:var(--panel-2);
     border:1px solid var(--line-soft);border-radius:8px;padding:12px 14px;margin:2px 0 14px}
@@ -478,11 +502,11 @@
 
   <div class="toolbar">
     <button class="btn" onclick="saveData()">▣ Daten sichern</button>
-    <button class="btn ghost" onclick="document.getElementById('importFile').click()">▤ Sicherung laden</button>
-    <input type="file" id="importFile" accept="application/json" style="display:none" onchange="importData(event)">
+    <button class="btn ghost" id="tbImport" onclick="document.getElementById('importFile').click()">▤ Sicherung laden</button>
+    <input type="file" id="importFile" accept=".enc,application/json" style="display:none" onchange="importData(event)">
     <button class="btn ghost" onclick="exportPDF()">⎙ Als PDF exportieren</button>
     <button class="btn ghost" onclick="toggleAll()">⇕ Alle auf/zu</button>
-    <button class="btn danger" onclick="wipeData()">⊗ Alles löschen</button>
+    <button class="btn danger" id="tbWipe" onclick="wipeData()">⊗ Alles löschen</button>
   </div>
 
   <nav class="nav-grid" id="navGrid"></nav>
@@ -805,6 +829,24 @@ let vaultKey = null;      // In-Memory-Hauptschlüssel (CryptoKey) nach Entsperr
 let envelope = null;      // aktueller Umschlag {v,protected,content,recipients[]}
 let saveTimer = null;
 
+/* ============ ROLLENMODELL (Owner vs. Erbe) ============ */
+/* Die Rolle ergibt sich aus dem beim Entsperren verwendeten Schlüssel-Slot:
+   owner=true -> Vollzugriff; sonst Empfänger/Recovery -> Erben-Ansicht (nur Lesen). */
+let currentRole = 'owner';   // 'owner' | 'heir'
+let currentSlot = null;      // der Slot, mit dem entsperrt wurde
+function setRole(slot){
+  currentSlot = slot || null;
+  currentRole = (slot && slot.owner) ? 'owner' : 'heir';
+  try{ document.body.dataset.role = currentRole; }catch(e){}
+}
+/* Feingranulare Freigabe: slot.scope = Array erlaubter Sektions-IDs; fehlt/kein Array = alles. */
+function heirCanSee(secId){
+  const sc = currentSlot && currentSlot.scope;
+  if(!Array.isArray(sc)) return true;
+  return sc.includes(secId);
+}
+const CONTENT_SECTIONS = ()=> SCHEMA.filter(s=>!s.security).map(s=>s.id);
+
 /* ============ VERSCHLÜSSELTE OFFLINE-DB (IndexedDB, Fallback localStorage) ============ */
 /* Speichert ausschließlich den verschlüsselten Umschlag. IndexedDB bietet mehr Platz
    (Foto-Scans) als localStorage; unter file:// oder ohne IDB fällt der Code sauber auf
@@ -857,6 +899,21 @@ async function loadEnvelope(){
 }
 async function isProtected(){ return !!(await loadEnvelope()); }
 
+/* ---------- Repository-Interface (austauschbar: IndexedDB heute, später z. B. wa-sqlite) ----------
+   Kapselt die Persistenz hinter einer stabilen API. Verschlüsselung passiert in dieser Schicht
+   (persist()/saveEnvelope()), nicht in der UI. get/put/list arbeiten auf dem im Speicher
+   entschlüsselten Modell `data`; exportEncrypted/importEncrypted auf dem verschlüsselten Umschlag. */
+const Store = {
+  backend(){ return hasIDB ? 'indexeddb' : 'localStorage'; },
+  async open(){ if(hasIDB){ try{ await dbOpen(); }catch(e){} } return true; },
+  async get(id){ return data ? data[id] : undefined; },        // entschlüsselt (nur nach Unlock)
+  async put(id, plain){ if(!vaultKey) throw new Error('gesperrt'); data[id]=plain; await persistNow(); return true; },
+  async delete(id){ if(!vaultKey) throw new Error('gesperrt'); delete data[id]; await persistNow(); return true; },
+  list(){ return data ? Object.keys(data) : []; },
+  exportEncrypted(){ return saveData(); },                     // schreibt .enc-Blob
+  importEncrypted(file){ return importFromFile(file); }
+};
+
 function legacyPlaintext(){
   // Nur zur einmaligen Migration eines alten, unverschlüsselten Zustands (Vor-ZK-Versionen).
   try{ const raw=localStorage.getItem(STORE); if(raw){ const o=JSON.parse(raw); if(o && Object.keys(o).length) return o; } }catch(e){}
@@ -878,6 +935,15 @@ function persist(){
   }, 250);
 }
 
+/* Speichert das aktuelle In-Memory-Modell `data` direkt verschlüsselt (ohne collect()/DOM).
+   Für die programmatische Store-API; die UI nutzt collect()-basiertes persist(). */
+async function persistNow(){
+  if(!vaultKey) return;
+  const content = await encryptContent(vaultKey, data);
+  envelope = {...envelope, v:1, protected:true, content};
+  await saveEnvelope();
+}
+
 /* ---------- Zero-Knowledge-Einrichtung: Owner-Slot + Envelope anlegen ---------- */
 async function setupMaster(name, password, seedData){
   const dek = await genDEK();
@@ -889,6 +955,7 @@ async function setupMaster(name, password, seedData){
   envelope = {v:1, protected:true, content, recipients:[owner]};
   vaultKey = dek;
   data = seed;
+  setRole(owner);
   masterAuthedUntil = Date.now() + 5*60*1000;
   await saveEnvelope();
   localStorage.removeItem(STORE);   // eventuellen Alt-Klartext endgültig entfernen
@@ -1115,6 +1182,11 @@ function render(){
   nav.innerHTML='';main.innerHTML='';
 
   SCHEMA.forEach((sec,i)=>{
+    // Erben-Ansicht: keine Schutz-/Admin-Sektion, nur freigegebene Bereiche
+    if(currentRole==='heir'){
+      if(sec.security) return;
+      if(!heirCanSee(sec.id)) return;
+    }
     const num=String(i+1).padStart(2,'0');
     const chip=el('a','nav-chip',`<span class="idx">${num}</span> ${sec.title.split(' ')[0]}`);
     chip.href='#'+sec.id;nav.appendChild(chip);
@@ -1186,6 +1258,27 @@ function render(){
 
     card.appendChild(body);main.appendChild(card);
   });
+  applyRole();
+}
+
+/* ---------- Rolle durchsetzen: Erben-Ansicht ist schreibgeschützt ---------- */
+function applyRole(){
+  try{ document.body.dataset.role = currentRole; }catch(e){}
+  const main=document.getElementById('sections');
+  const banner=document.getElementById('roleBanner');
+  if(currentRole!=='heir'){ if(banner) banner.remove(); return; }
+  // alle Eingaben read-only / deaktiviert
+  main.querySelectorAll('input,textarea').forEach(x=>{ x.readOnly=true; x.setAttribute('aria-readonly','true'); });
+  main.querySelectorAll('select').forEach(x=>{ x.disabled=true; });
+  // Erben-Hinweisbanner
+  if(!banner){
+    const b=el('div','role-banner'); b.id='roleBanner';
+    b.innerHTML='👁 <strong>Erben-Ansicht</strong> – nur Lesen. Du siehst die für dich freigegebenen Bereiche; '
+      +'Bearbeiten und Verwaltung sind deaktiviert.';
+    const tb=document.querySelector('.toolbar');
+    if(tb&&tb.parentNode) tb.parentNode.insertBefore(b, tb);
+    else document.getElementById('sections').insertBefore(b, main.firstChild);
+  }
 }
 
 /* ============ VERMÖGENS-/VERWALTUNGSMODUL ============ */
@@ -1847,6 +1940,38 @@ function renderSecurity(sec,body){
         row.appendChild(del);
       }
       list.appendChild(row);
+      // Feingranulare Freigabe (nur für Nicht-Owner): welche Bereiche sieht diese Person?
+      if(!r.owner){
+        const det=el('details','rcpt-scope');
+        const sum=el('summary',null,'Sichtbare Bereiche festlegen');
+        det.appendChild(sum);
+        const grid=el('div','scope-grid');
+        const all=!Array.isArray(r.scope);
+        const allLbl=el('label','scope-all');
+        const allCb=el('input');allCb.type='checkbox';allCb.checked=all;
+        allLbl.appendChild(allCb);allLbl.appendChild(document.createTextNode(' Alle Bereiche'));
+        grid.appendChild(allLbl);
+        const boxes=[];
+        CONTENT_SECTIONS().forEach(id=>{
+          const sec=SCHEMA.find(s=>s.id===id);
+          const lab=el('label','scope-item');
+          const cb=el('input');cb.type='checkbox';cb.value=id;
+          cb.checked = all ? true : r.scope.includes(id);
+          cb.disabled = all;
+          lab.appendChild(cb);lab.appendChild(document.createTextNode(' '+sec.title));
+          grid.appendChild(lab);boxes.push(cb);
+        });
+        allCb.onchange=()=>{ boxes.forEach(cb=>{cb.disabled=allCb.checked; if(allCb.checked)cb.checked=true;}); saveScope(); };
+        boxes.forEach(cb=>cb.onchange=saveScope);
+        function saveScope(){
+          if(allCb.checked){ delete r.scope; }
+          else { r.scope = boxes.filter(cb=>cb.checked).map(cb=>cb.value); }
+          saveEnvelope();
+        }
+        det.appendChild(grid);
+        det.appendChild(el('p','qr-note','Hinweis: Dies ist eine Anzeige-Einschränkung in der Erben-Ansicht. Kryptografisch teilen sich alle Berechtigten einen Inhalts-Schlüssel – für echte, kryptografische Trennung pro Person wären separate Sektions-Schlüssel nötig (mögliche Erweiterung).'));
+        list.appendChild(det);
+      }
     });
   }
   drawList();
@@ -2359,7 +2484,7 @@ async function saveData(){
     const blob=new Blob([JSON.stringify(envelope,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');const d=new Date().toISOString().slice(0,10);
-    a.href=url;a.download=`Notfallordner_verschluesselt_${d}.json`;a.click();
+    a.href=url;a.download=`Notfallordner_verschluesselt_${d}.enc`;a.click();
     URL.revokeObjectURL(url);
     toast('Verschlüsselte Sicherung gespeichert');
     return;
@@ -2370,6 +2495,10 @@ async function saveData(){
 
 function importData(e){
   const file=e.target.files[0];if(!file)return;
+  importFromFile(file);
+  e.target.value='';
+}
+function importFromFile(file){
   const r=new FileReader();
   r.onload=async ev=>{
     try{
@@ -2389,7 +2518,7 @@ function importData(e){
     }
     catch(err){toast('Datei konnte nicht gelesen werden');}
   };
-  r.readAsText(file);e.target.value='';
+  r.readAsText(file);
 }
 
 function wipeData(){
@@ -2465,7 +2594,7 @@ async function bootNormal(){
   if(envelope){
     document.body.classList.add('locked');
     const gp=document.getElementById('gatePass'), gm=document.getElementById('gateMsg'), gb=document.getElementById('gateBtn'), gbio=document.getElementById('gateBioBtn');
-    const openUp=(res)=>{ vaultKey=res.dek; data=res.data||{}; document.body.classList.remove('locked'); gp.value=''; render(); };
+    const openUp=(res)=>{ vaultKey=res.dek; data=res.data||{}; setRole(res.slot); document.body.classList.remove('locked'); gp.value=''; render(); };
     const doUnlock=async()=>{
       gm.textContent='';
       const pw=gp.value; if(!pw){gm.textContent='Bitte Passwort eingeben.';return;}
@@ -2486,7 +2615,7 @@ async function bootNormal(){
         gbio.style.display='flex';
         gbio.onclick=async()=>{
           gm.textContent=''; gbio.disabled=true; gbio.textContent='… warte auf Bestätigung';
-          try{ const dek=await bioUnlock(envelope.ownerBio); const d=await decryptContent(dek,envelope.content); openUp({dek,data:d}); }
+          try{ const dek=await bioUnlock(envelope.ownerBio); const d=await decryptContent(dek,envelope.content); const own=(envelope.recipients||[]).find(r=>r.owner); openUp({dek,data:d,slot:own||{owner:true}}); }
           catch(e){ gm.textContent='Biometrie fehlgeschlagen – bitte Passwort verwenden.'; }
           gbio.disabled=false; gbio.textContent='☉ Mit Face ID / Fingerabdruck';
         };

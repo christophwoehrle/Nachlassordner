@@ -93,6 +93,18 @@ Reihenfolge & Typ:
   Nur in sicherem Kontext (https/localhost), **nicht** unter `file://`. Gerätegebunden.
   Fällt sauber auf Master-Passwort zurück, wenn nicht verfügbar.
 
+### Rollen (Owner vs. Erbe)
+- Die Rolle folgt aus dem Entsperr-Slot: `owner=true` → `currentRole='owner'` (Vollzugriff);
+  sonst (Empfänger/Recovery) → `'heir'` (nur Lesen). Gesetzt via `setRole(slot)` an allen
+  Unlock-Punkten (Gate, Setup, Biometrie, Recovery, Demo); `body[data-role]` steuert CSS.
+- `render()` überspringt für Erben die `schutz`-Sektion und nicht freigegebene Bereiche
+  (`heirCanSee`); `applyRole()` setzt Eingaben read-only und blendet verwaltende Controls aus.
+- **Feingranulare Freigabe:** `slot.scope` = Array erlaubter Sektions-IDs (fehlt = alle). Owner
+  setzt dies pro Empfänger in `renderSecurity` (drawList). *Nur Anzeige-Ebene* – alle Berechtigten
+  teilen einen DEK; echte Krypto-Trennung bräuchte per-Sektion-Schlüssel.
+- Nicht aufweichen: Erben dürfen nichts schreiben/verwalten; `persist()` wird von read-only-
+  Eingaben nicht ausgelöst.
+
 ### Nachlass-Freigabe (Shamir Secret Sharing, posthumer Zugriff)
 - **Zugriff erst nach dem Tod** über K-of-N-Secret-Sharing – rein offline, zero-knowledge.
   Modul `SSS` (GF(256), `split/combine/encode/decode`), Standard **N=3, K=2** (`SSS_N`/`SSS_K`).

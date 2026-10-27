@@ -12,10 +12,15 @@
       var env = await loadEnvelope();                          // aus IndexedDB (Fallback localStorage)
       if(!env){
         await setupMaster('Demo-Owner', DEMO_PW, DEMO_DATA);   // verschlüsselt in die DB, kein Klartext
+        // Demo-Erbe mit eingeschränkter Freigabe anlegen (zeigt die Erben-Ansicht)
+        var eslot = await wrapDEK(vaultKey, 'erbe1234');
+        eslot.name='Erbe (Demo)'; eslot.id='demo-erbe';
+        eslot.scope=['personen','medizin','dokumente','wuensche','sorgerecht'];
+        envelope.recipients.push(eslot); await saveEnvelope();
         localStorage.setItem(FLAG,'1');
       }else{
         var res=await tryUnlock(env, DEMO_PW);                 // automatisch entsperren
-        if(res){ vaultKey=res.dek; data=res.data; envelope=env; }
+        if(res){ vaultKey=res.dek; data=res.data; envelope=env; setRole(res.slot); }
       }
       document.body.classList.remove('locked');
       render();
@@ -33,15 +38,28 @@
       +'box-shadow:0 8px 30px -12px rgba(31,91,98,.4);font:14px/1.45 ui-sans-serif,system-ui,sans-serif';
     var txt=document.createElement('span'); txt.style.cssText='flex:1';
     txt.innerHTML='<b style="color:var(--heading,#1F5B62)">Zero-Knowledge-Demo</b> – Beispieldaten sind Ende-zu-Ende-verschluesselt gespeichert (Master-Passwort <code>'+DEMO_PW+'</code>). Beim Neuladen wird automatisch entsperrt.';
+    var sBtn='flex:0 0 auto;cursor:pointer;padding:7px 12px;border-radius:8px;font:600 13px ui-sans-serif,system-ui,sans-serif;';
+    // Rollen-Umschalter Owner <-> Erbe (nur Demo)
+    var roleBtn=document.createElement('button');
+    roleBtn.style.cssText=sBtn+'border:1px solid var(--forest,#276E75);background:transparent;color:var(--forest,#276E75)';
+    function syncRoleBtn(){ roleBtn.textContent = (typeof currentRole!=='undefined'&&currentRole==='heir') ? 'Als Owner ansehen' : 'Als Erbe ansehen'; }
+    syncRoleBtn();
+    roleBtn.onclick=function(){
+      try{
+        var owner=(envelope.recipients||[]).find(function(r){return r.owner;});
+        var erbe=(envelope.recipients||[]).find(function(r){return r.id==='demo-erbe';});
+        setRole(currentRole==='heir' ? owner : (erbe||owner));
+        render();
+      }catch(e){ console.error(e); }
+      syncRoleBtn();
+    };
     var btn=document.createElement('button'); btn.textContent='Demo zuruecksetzen';
-    btn.style.cssText='flex:0 0 auto;cursor:pointer;padding:7px 12px;border-radius:8px;'
-      +'border:1px solid var(--forest,#276E75);background:var(--forest,#276E75);color:#fff;'
-      +'font:600 13px ui-sans-serif,system-ui,sans-serif';
+    btn.style.cssText=sBtn+'border:1px solid var(--forest,#276E75);background:var(--forest,#276E75);color:#fff';
     btn.onclick=async function(){
       try{ await removeEnvelope(); localStorage.removeItem(FLAG); localStorage.removeItem('notfallordner_v1'); localStorage.setItem(CLEARED,'1'); }catch(e){}
       location.reload();
     };
-    bar.appendChild(txt); bar.appendChild(btn); document.body.appendChild(bar);
+    bar.appendChild(txt); bar.appendChild(roleBtn); bar.appendChild(btn); document.body.appendChild(bar);
   }
 })();
 </script>
