@@ -40,11 +40,14 @@ an berechtigte Personen weitergeben wollen.
 ### Datenmodell (Zero-Knowledge / E2EE – kein Klartext at-rest)
 - Laufzeit-State in der globalen Variable `data` (Objekt je Sektion); Klartext existiert **nur im
   Speicher** nach dem Entsperren.
-- Persistenz in `localStorage`:
-  - `notfallordner_env_v1` – **verschlüsselter Umschlag** (AES-256-GCM). **Einziger** Speicherort.
-  - `notfallordner_v1` – **Alt-Klartext**. Wird nicht mehr geschrieben; existiert höchstens aus
-    Vor-ZK-Versionen und wird beim ersten `setupMaster()` migriert und **gelöscht**
-    (`legacyPlaintext()`).
+- Persistenz über eine **verschlüsselte Offline-DB**: **IndexedDB** (`DB_NAME='notfallordner'`,
+  Store `kv`, Key `notfallordner_env_v1`) mit automatischem **Fallback auf `localStorage`**
+  (unter `file://` oder wenn IndexedDB fehlt). Abstraktion: `dbGet/dbSet/dbDel` +
+  `saveEnvelope()/loadEnvelope()/removeEnvelope()`. Gespeichert wird **nur der verschlüsselte
+  Umschlag** (AES-256-GCM) – nie Klartext. `isProtected()` ist jetzt **async** (liest die DB).
+  - `notfallordner_env_v1` – verschlüsselter Umschlag; **einziger** Speicherort der Nutzdaten.
+  - `notfallordner_v1` – **Alt-Klartext**, nur Migration via `legacyPlaintext()`, danach gelöscht.
+  - Migration aus `localStorage` → IndexedDB geschieht transparent in `loadEnvelope()`.
 - **Pflicht-Einrichtung:** Ohne Envelope erzwingt `boot()` → `startSetup()` das Anlegen eines
   Master-Passworts (`setupMaster()`), bevor irgendetwas gespeichert werden kann. Keine Recovery –
   Passwortverlust = endgültiger Datenverlust (bewusst, „unumkehrbar").
@@ -89,6 +92,19 @@ Reihenfolge & Typ:
 - **Biometrie (optional):** WebAuthn + PRF-Extension (`bioAvailable`/`bioRegister`/`bioUnlock`).
   Nur in sicherem Kontext (https/localhost), **nicht** unter `file://`. Gerätegebunden.
   Fällt sauber auf Master-Passwort zurück, wenn nicht verfügbar.
+
+### Nachlass-Freigabe (Shamir Secret Sharing, posthumer Zugriff)
+- **Zugriff erst nach dem Tod** über K-of-N-Secret-Sharing – rein offline, zero-knowledge.
+  Modul `SSS` (GF(256), `split/combine/encode/decode`), Standard **N=3, K=2** (`SSS_N`/`SSS_K`).
+- `createRecoveryShares()` erzeugt ein 32-Byte-Zufalls-Secret R, legt einen **Recovery-Slot**
+  (`recipient` mit `recovery:true`, DEK gewrappt mit `base64(R)`) im Umschlag an und gibt N
+  Shamir-Teile zurück (werden **nicht** gespeichert → sofort drucken/notieren). `printShareDoc()`
+  druckt ein Teil-Dokument (für Notar/Vertrauensperson).
+- Entsperren mit ≥K Teilen: `unlockWithShares(env, teile)` rekonstruiert R und ruft `tryUnlock`.
+  Am Gate via `wireRecoveryUnlock(openUp)`. Owner-Verwaltung: `renderRecoveryUI()`.
+- Der „Tod" ist nicht kryptografisch erkennbar – Auslöser ist extern (Notar/Sterbeurkunde bzw.
+  Zusammenführen der Teile). Eine Totmann-Schaltung wäre nur mit Online-Dienst möglich (bewusst
+  nicht umgesetzt, da sie Offline/ZK bräche).
 
 ### Passwortgenerator
 `genPassword({length,lower,upper,digit,symbol,avoidAmbiguous})` – CSPRNG (`crypto.getRandomValues`),
@@ -140,13 +156,21 @@ Vorgehen für Änderungen: nach jeder relevanten Änderung eine Headless-Prüfun
 Verschlüsselung aktivieren, Drehschloss auf/zu).
 
 ```
-npm install jsdom --no-save
-node tests/smoke.test.js
+npm install jsdom fake-indexeddb --no-save
+npm test
 ```
 
-Für Krypto-Änderungen zusätzlich einen isolierten Roundtrip testen
-(mehrere Empfänger, falsches Passwort → kein Zugriff, Empfänger entfernen, Performance des
-Neu-Verschlüsselns < 50 ms, Unlock-PBKDF2 ~ einige 100 ms).
+`npm test` baut zuerst die Demo (`tools/build_demo.js` → `index-demo.html`) und fährt dann drei
+Suiten (`fake-indexeddb` liefert IndexedDB in jsdom, sonst greift der localStorage-Fallback):
+- `tests/smoke.test.js` – Rendering, 13 Sektionen, ZK-Invarianten (Setup erzwungen, Envelope nur
+  in IndexedDB, kein Klartext), Kernflows.
+- `tests/crypto.test.js` – Envelope-Roundtrip; mehrere Empfänger; falsches Passwort → kein
+  Zugriff; Empfänger entfernen; Re-Encrypt < 50 ms, PBKDF2-Unlock ~100 ms; **Shamir** (3 Teile,
+  K=2: je 2 rekonstruieren, 1 Teil nutzlos, Recovery-Unlock, falsche Teile → kein Zugriff).
+- `tests/demo.test.js` – Demo wird verschlüsselt angelegt (IndexedDB) und automatisch entsperrt.
+
+Demo bauen: `node tools/build_demo.js` fügt `tools/demo-bootstrap.html` in `index.html` ein und
+schreibt `index-demo.html` (nie direkt editieren – der Generator ist die Quelle).
 
 ### Kontrastprüfung
 Vor dem Abschluss einer Design-Änderung Textkontraste prüfen (Ziel: Fließtext ≥ AA, besser AAA).

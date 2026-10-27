@@ -122,6 +122,56 @@ async function run() {
   ok('Re-Encrypt < 50 ms (war ' + perf.encMs + ' ms)', perf.encMs < 50);
   ok('Unlock/PBKDF2 messbar > 20 ms (war ' + perf.unlockMs + ' ms)', perf.unlockMs > 20);
 
+  // 5) Shamir Secret Sharing (Nachlass-Freigabe, 3 Teile, K=2)
+  console.log('\n── Shamir Secret Sharing (Nachlass-Freigabe) ──');
+  const sss = await EV(`(async()=>{
+    const secret = crypto.getRandomValues(new Uint8Array(32));
+    const shares = SSS.split(secret, 3, 2).map(SSS.encode);
+    const hx = u => [...u].map(b=>b.toString(16).padStart(2,'0')).join('');
+    const eq = (a,b)=> hx(a)===hx(b);
+    // je 2 von 3 Kombinationen rekonstruieren korrekt
+    const c12 = SSS.combine([SSS.decode(shares[0]), SSS.decode(shares[1])]);
+    const c13 = SSS.combine([SSS.decode(shares[0]), SSS.decode(shares[2])]);
+    const c23 = SSS.combine([SSS.decode(shares[1]), SSS.decode(shares[2])]);
+    // 1 Teil allein: darf NICHT das Secret ergeben
+    const one = SSS.decode(shares[0]).y;
+    return { count: shares.length,
+      k2ok: eq(c12,secret) && eq(c13,secret) && eq(c23,secret),
+      oneWrong: !eq(one, secret),
+      shareLen: shares[0].length };
+  })()`);
+  ok('3 Teile erzeugt', sss.count === 3);
+  ok('Je 2 Teile rekonstruieren das Secret', sss.k2ok);
+  ok('1 Teil allein gibt das Secret NICHT preis', sss.oneWrong);
+
+  const rec = await EV(`(async()=>{
+    // frischer Owner-Setup, dann Nachlass-Freigabe erzeugen
+    localStorage.clear(); envelope=null; vaultKey=null;
+    await setupMaster("Owner","owner-pw-123456", { personen:{ name:"Anna" } });
+    const shares = await createRecoveryShares();   // 3 Teile, Recovery-Slot im Envelope
+    const env = await dbGet(ENV_STORE);
+    const hasRecSlot = env.recipients.some(r=>r.recovery);
+    // Mit 2 Teilen entsperren
+    const ok2 = await unlockWithShares(env, [shares[0], shares[1]]);
+    const ok2b = await unlockWithShares(env, [shares[1], shares[2]]);
+    // Mit 1 Teil -> Fehler (unter Schwellwert)
+    let under=false; try{ await unlockWithShares(env, [shares[0]]); }catch(e){ under=true; }
+    // Mit 2 FALSCHEN (vertauschten Bytes) Teilen -> kein Zugriff
+    const bad = shares.slice(0,2).map(s=>{ const p=s.split('-'); return p[0]+'-'+p[1].split('').reverse().join(''); });
+    const badRes = await unlockWithShares(env, bad);
+    return {
+      hasRecSlot,
+      unlock2: !!(ok2 && ok2.data && ok2.data.personen.name==="Anna"),
+      unlock2b: !!(ok2b && ok2b.data),
+      underThreshold: under,
+      badNull: badRes===null
+    };
+  })()`);
+  ok('Recovery-Slot im Envelope angelegt', rec.hasRecSlot);
+  ok('2 Teile entsperren den Ordner (Klartext lesbar)', rec.unlock2 && rec.unlock2b);
+  ok('< K Teile -> Fehler (kein Zugriff)', rec.underThreshold);
+  ok('Falsche Teile -> kein Zugriff (null)', rec.badNull);
+
   console.log(`\nErgebnis: ${pass} bestanden, ${fail} fehlgeschlagen`);
   process.exit(fail > 0 ? 1 : 0);
 }

@@ -34,6 +34,9 @@ const dom = new JSDOM(html, {
     // jsdom definiert crypto als non-writable getter -> mit defineProperty echte Web-Crypto (inkl. subtle) erzwingen.
     try { Object.defineProperty(win, 'crypto', { value: webcrypto, configurable: true, writable: true }); }
     catch (e) { win.crypto = webcrypto; }
+    // Echte IndexedDB-Semantik im Test (fake-indexeddb) – sonst nur localStorage-Fallback.
+    try { const { IDBFactory, IDBKeyRange } = require('fake-indexeddb'); win.indexedDB = new IDBFactory(); win.IDBKeyRange = IDBKeyRange; } catch (e) {}
+    win.structuredClone = win.structuredClone || globalThis.structuredClone;
     win.matchMedia = win.matchMedia || (() => ({ matches: false, addListener(){}, removeListener(){}, addEventListener(){}, removeEventListener(){} }));
     win.open = () => ({ document: { write(){}, close(){} }, focus(){}, print(){}, close(){} });
     win.print = () => {};
@@ -67,20 +70,24 @@ async function run() {
   const ids = (SCHEMA || []).map(s => s.id);
   ok('Sektions-IDs & Reihenfolge korrekt', JSON.stringify(ids) === JSON.stringify(expected));
 
-  console.log('\n── (Zero-Knowledge) Erststart erzwingt Einrichtung ──');
-  // Frischer Start: kein Envelope -> Setup-Overlay, KEINE gerenderten Sektionen, KEIN Klartext.
+  console.log('\n── (Zero-Knowledge + IndexedDB) Erststart erzwingt Einrichtung ──');
+  // boot() ist async -> kurz warten, bis startSetup() das Overlay gelegt hat.
+  await new Promise(r => setTimeout(r, 150));
   ok('Setup-Overlay (#setupGate) erzwungen', !!doc.querySelector('#setupGate'));
   ok('Body ist gesperrt (locked)', doc.body.classList.contains('locked'));
   ok('Sektionen vor Einrichtung NICHT gerendert', doc.querySelector('#sections').children.length === 0);
   ok('Kein Klartext at-rest (notfallordner_v1 leer)', !window.localStorage.getItem('notfallordner_v1'));
+  ok('IndexedDB verfügbar (nicht nur Fallback)', !!window.eval('hasIDB'));
 
   // Zero-Knowledge-Einrichtung durchführen (setupMaster) und danach rendern.
   await window.eval('(async()=>{ await setupMaster("Testowner","testpasswort123",{}); render(); })()');
-  ok('Nach Einrichtung: Envelope verschlüsselt at-rest', !!window.localStorage.getItem('notfallordner_env_v1'));
+  // Envelope liegt in IndexedDB (nicht localStorage) -> über die DB-Schicht lesen.
+  const env = await window.eval('dbGet(ENV_STORE)');
+  ok('Nach Einrichtung: Envelope verschlüsselt in IndexedDB', !!env);
+  ok('Kein Envelope im localStorage (nur IndexedDB)', !window.localStorage.getItem('notfallordner_env_v1'));
   ok('Nach Einrichtung: weiterhin KEIN Klartext', !window.localStorage.getItem('notfallordner_v1'));
-  const env = JSON.parse(window.localStorage.getItem('notfallordner_env_v1'));
   ok('Envelope hat content.iv+ct (AES-GCM)', env && env.content && env.content.iv && env.content.ct);
-  ok('Envelope enthält KEINE Klartext-Sektionsdaten', !/Testowner-secret|"personen"|"vermoegen"/.test(env.content.ct) && !env.data);
+  ok('Envelope enthält KEINE Klartext-Sektionsdaten', !/"personen"|"vermoegen"/.test(env.content.ct) && !env.data);
   ok('Owner-Slot mit PBKDF2-Salt vorhanden', env.recipients && env.recipients[0] && env.recipients[0].owner && env.recipients[0].salt);
   // render() legt Karten in #sections ab
   ok('#sections wurde befüllt (Karten gerendert)', doc.querySelector('#sections').children.length >= 13);

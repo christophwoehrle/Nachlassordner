@@ -414,11 +414,11 @@
     try{
       // Demo bewusst gelöscht -> echtes Zero-Knowledge-Erstverhalten zeigen.
       if(localStorage.getItem(CLEARED)){ bootNormal(); return; }
-      if(!localStorage.getItem(ENV)){
-        await setupMaster('Demo-Owner', DEMO_PW, DEMO_DATA);   // verschlüsselt, kein Klartext
+      var env = await loadEnvelope();                          // aus IndexedDB (Fallback localStorage)
+      if(!env){
+        await setupMaster('Demo-Owner', DEMO_PW, DEMO_DATA);   // verschlüsselt in die DB, kein Klartext
         localStorage.setItem(FLAG,'1');
       }else{
-        var env=JSON.parse(localStorage.getItem(ENV));
         var res=await tryUnlock(env, DEMO_PW);                 // automatisch entsperren
         if(res){ vaultKey=res.dek; data=res.data; envelope=env; }
       }
@@ -442,8 +442,8 @@
     btn.style.cssText='flex:0 0 auto;cursor:pointer;padding:7px 12px;border-radius:8px;'
       +'border:1px solid var(--forest,#276E75);background:var(--forest,#276E75);color:#fff;'
       +'font:600 13px ui-sans-serif,system-ui,sans-serif';
-    btn.onclick=function(){
-      try{ localStorage.removeItem(ENV); localStorage.removeItem(FLAG); localStorage.removeItem('notfallordner_v1'); localStorage.setItem(CLEARED,'1'); }catch(e){}
+    btn.onclick=async function(){
+      try{ await removeEnvelope(); localStorage.removeItem(FLAG); localStorage.removeItem('notfallordner_v1'); localStorage.setItem(CLEARED,'1'); }catch(e){}
       location.reload();
     };
     bar.appendChild(txt); bar.appendChild(btn); document.body.appendChild(bar);
@@ -852,7 +852,57 @@ let vaultKey = null;      // In-Memory-Hauptschlüssel (CryptoKey) nach Entsperr
 let envelope = null;      // aktueller Umschlag {v,protected,content,recipients[]}
 let saveTimer = null;
 
-function isProtected(){ return !!localStorage.getItem(ENV_STORE); }
+/* ============ VERSCHLÜSSELTE OFFLINE-DB (IndexedDB, Fallback localStorage) ============ */
+/* Speichert ausschließlich den verschlüsselten Umschlag. IndexedDB bietet mehr Platz
+   (Foto-Scans) als localStorage; unter file:// oder ohne IDB fällt der Code sauber auf
+   localStorage zurück. Zero-Knowledge bleibt gewahrt – nur Chiffrat wird abgelegt. */
+const DB_NAME='notfallordner', DB_VER=1, DB_KV='kv';
+const hasIDB = (()=>{ try{ return typeof indexedDB!=='undefined' && !!indexedDB; }catch(e){ return false; } })();
+let _dbp=null;
+function dbOpen(){
+  if(_dbp) return _dbp;
+  _dbp=new Promise((res,rej)=>{
+    let req; try{ req=indexedDB.open(DB_NAME,DB_VER); }catch(e){ return rej(e); }
+    req.onupgradeneeded=()=>{ try{ req.result.createObjectStore(DB_KV); }catch(e){} };
+    req.onsuccess=()=>res(req.result);
+    req.onerror=()=>rej(req.error);
+  });
+  return _dbp;
+}
+async function dbGet(key){
+  if(hasIDB){
+    try{ const db=await dbOpen(); return await new Promise((res,rej)=>{ const r=db.transaction(DB_KV,'readonly').objectStore(DB_KV).get(key); r.onsuccess=()=>res(r.result==null?null:r.result); r.onerror=()=>rej(r.error); }); }
+    catch(e){ /* Fallback */ }
+  }
+  try{ const v=localStorage.getItem(key); return v==null?null:JSON.parse(v); }catch(e){ return null; }
+}
+async function dbSet(key,val){
+  if(hasIDB){
+    try{ const db=await dbOpen(); await new Promise((res,rej)=>{ const t=db.transaction(DB_KV,'readwrite'); t.objectStore(DB_KV).put(val,key); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); return; }
+    catch(e){ /* Fallback */ }
+  }
+  try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){ console.error('Speichern fehlgeschlagen', e); }
+}
+async function dbDel(key){
+  if(hasIDB){
+    try{ const db=await dbOpen(); await new Promise((res,rej)=>{ const t=db.transaction(DB_KV,'readwrite'); t.objectStore(DB_KV).delete(key); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); }
+    catch(e){}
+  }
+  try{ localStorage.removeItem(key); }catch(e){}
+}
+
+/* Umschlag-Persistenz über die DB-Schicht. */
+function saveEnvelope(){ return dbSet(ENV_STORE, envelope); }
+async function removeEnvelope(){ await dbDel(ENV_STORE); }
+async function loadEnvelope(){
+  let env = await dbGet(ENV_STORE);
+  if(!env){
+    // Migration aus localStorage (Vor-IndexedDB-Versionen)
+    try{ const raw=localStorage.getItem(ENV_STORE); if(raw){ env=JSON.parse(raw); await dbSet(ENV_STORE,env); localStorage.removeItem(ENV_STORE); } }catch(e){}
+  }
+  return env;
+}
+async function isProtected(){ return !!(await loadEnvelope()); }
 
 function legacyPlaintext(){
   // Nur zur einmaligen Migration eines alten, unverschlüsselten Zustands (Vor-ZK-Versionen).
@@ -870,7 +920,7 @@ function persist(){
     try{
       const content = await encryptContent(vaultKey, data);
       envelope = {...envelope, v:1, protected:true, content};
-      localStorage.setItem(ENV_STORE, JSON.stringify(envelope));
+      await saveEnvelope();
     }catch(e){ console.error('Verschlüsseltes Speichern fehlgeschlagen', e); }
   }, 250);
 }
@@ -887,7 +937,7 @@ async function setupMaster(name, password, seedData){
   vaultKey = dek;
   data = seed;
   masterAuthedUntil = Date.now() + 5*60*1000;
-  localStorage.setItem(ENV_STORE, JSON.stringify(envelope));
+  await saveEnvelope();
   localStorage.removeItem(STORE);   // eventuellen Alt-Klartext endgültig entfernen
   return true;
 }
@@ -930,6 +980,77 @@ async function tryUnlock(env,password){
     catch(e){}
   }
   return null;
+}
+
+/* ---------- Shamir Secret Sharing über GF(256) (Nachlass-Freigabe K-of-N) ----------
+   Teilt ein Geheimnis in N Teile; K Teile genügen zur Rekonstruktion. Reine
+   Client-Kryptografie, offline, ZK-konform. Standard N=3 / K=2 (z. B. Notar + 2 Angehörige). */
+const SSS = (function(){
+  const EXP=new Uint8Array(512), LOG=new Uint8Array(256);
+  (function(){ let x=1; for(let i=0;i<255;i++){ EXP[i]=x; LOG[x]=i; x<<=1; if(x&0x100) x^=0x11D; } for(let i=255;i<512;i++) EXP[i]=EXP[i-255]; })();
+  const mul=(a,b)=> (a===0||b===0)?0:EXP[LOG[a]+LOG[b]];
+  const div=(a,b)=>{ if(b===0) throw new Error('GF-Division durch 0'); return a===0?0:EXP[(LOG[a]+255-LOG[b])%255]; };
+  function evalPoly(coeffs,xv){ let r=0; for(let i=coeffs.length-1;i>=0;i--) r=mul(r,xv)^coeffs[i]; return r; }
+  function split(secret,n,k){
+    if(k<2||k>n||n>255) throw new Error('ungültige SSS-Parameter');
+    const shares=[]; for(let s=1;s<=n;s++) shares.push({x:s,y:new Uint8Array(secret.length)});
+    for(let b=0;b<secret.length;b++){
+      const coeffs=new Uint8Array(k); coeffs[0]=secret[b];
+      const rnd=crypto.getRandomValues(new Uint8Array(k-1)); for(let i=1;i<k;i++) coeffs[i]=rnd[i-1];
+      for(const sh of shares) sh.y[b]=evalPoly(coeffs, sh.x);
+    }
+    return shares;
+  }
+  function combine(shares){
+    const len=shares[0].y.length, out=new Uint8Array(len);
+    for(let b=0;b<len;b++){
+      let acc=0;
+      for(let i=0;i<shares.length;i++){
+        let num=1,den=1;
+        for(let j=0;j<shares.length;j++){ if(i===j) continue; num=mul(num, shares[j].x); den=mul(den, shares[i].x ^ shares[j].x); }
+        acc ^= mul(shares[i].y[b], div(num,den));
+      }
+      out[b]=acc;
+    }
+    return out;
+  }
+  const _hex=u=>[...u].map(b=>b.toString(16).padStart(2,'0')).join('');
+  const encode=sh=> sh.x+'-'+_hex(sh.y);
+  function decode(str){
+    const m=/^\s*(\d{1,3})-([0-9a-fA-F]+)\s*$/.exec(String(str||''));
+    if(!m) throw new Error('Teil nicht lesbar');
+    const x=parseInt(m[1],10); const hex=m[2];
+    if(x<1||x>255||hex.length%2) throw new Error('Teil ungültig');
+    const y=new Uint8Array(hex.length/2); for(let i=0;i<y.length;i++) y[i]=parseInt(hex.substr(i*2,2),16);
+    return {x,y};
+  }
+  return {split,combine,encode,decode};
+})();
+
+/* Nachlass-Freigabe einrichten: Recovery-Slot (per Zufalls-Secret gewrappt) + N Shamir-Teile. */
+const SSS_N=3, SSS_K=2;
+async function createRecoveryShares(){
+  const R = crypto.getRandomValues(new Uint8Array(32));        // Recovery-Secret
+  const rpw = _b64(R);                                         // als „Passwort" für den Recovery-Slot
+  // evtl. alten Recovery-Slot ersetzen
+  envelope.recipients = (envelope.recipients||[]).filter(r=>!r.recovery);
+  const slot = await wrapDEK(vaultKey, rpw);
+  slot.recovery = true; slot.name = 'Nachlass-Freigabe (Shamir '+SSS_K+'/'+SSS_N+')'; slot.id = uid();
+  envelope.recipients.push(slot);
+  await saveEnvelope();
+  return SSS.split(R, SSS_N, SSS_K).map(SSS.encode);           // N Teil-Strings
+}
+function hasRecovery(){ return !!(envelope && (envelope.recipients||[]).some(r=>r.recovery)); }
+async function removeRecovery(){
+  envelope.recipients = (envelope.recipients||[]).filter(r=>!r.recovery);
+  await saveEnvelope();
+}
+/* Mit ≥K Teilen entsperren: Secret rekonstruieren und den Recovery-Slot öffnen. */
+async function unlockWithShares(env, shareStrings){
+  const shares = shareStrings.map(SSS.decode);
+  if(shares.length < SSS_K) throw new Error('Mindestens '+SSS_K+' Teile nötig');
+  const R = SSS.combine(shares);
+  return await tryUnlock(env, _b64(R));                        // null bei falschen/zu wenigen Teilen
 }
 
 /* ---------- Passwortgenerator (aktueller Standard: CSPRNG, Länge vor Komplexität) ---------- */
@@ -1796,13 +1917,18 @@ function renderSecurity(sec,body){
     addBtn.disabled=true;addBtn.textContent='… füge hinzu';
     const slot=await wrapDEK(vaultKey,pI.value); slot.name=nI.value.trim(); slot.id=uid();
     envelope.recipients.push(slot);
-    localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
+    await saveEnvelope();
     addBtn.disabled=false;addBtn.textContent='+ Empfänger hinzufügen (Master erforderlich)';
     const shown=pI.value; nI.value='';pI.value='';drawList();
     toast('Empfänger hinzugefügt – Passwort notieren: '+shown);
   };
   addWrap.appendChild(addBtn);
   body.appendChild(addWrap);
+
+  // Nachlass-Freigabe (Shamir Secret Sharing) – Zugriff erst nach dem Tod
+  const recWrap=el('div');recWrap.style.marginTop='18px';recWrap.id='recWrap';
+  body.appendChild(recWrap);
+  renderRecoveryUI(recWrap);
 
   // Biometrie-Verwaltung (Owner-Gerät)
   const bioWrap=el('div');bioWrap.style.marginTop='18px';bioWrap.id='bioWrap';
@@ -1820,7 +1946,7 @@ function renderSecurity(sec,body){
   offBtn.onclick=async()=>{
     if(!await askMaster('Löschen bestätigen – bitte Master-Passwort eingeben.'))return;
     if(!confirm('Den GESAMTEN verschlüsselten Ordner unwiderruflich löschen? Es gibt keine Wiederherstellung.'))return;
-    localStorage.removeItem(ENV_STORE);
+    await removeEnvelope();
     localStorage.removeItem(STORE);
     vaultKey=null;envelope=null;masterAuthedUntil=0;
     location.reload();   // -> Erststart-Einrichtung
@@ -1845,7 +1971,7 @@ async function refreshBioUI(host){
     const p=el('p','qr-note');p.textContent='Aktiv: Owner kann auf diesem Gerät per Face ID / Fingerabdruck entsperren und Master-Aktionen bestätigen.';
     host.appendChild(p);
     const rm=el('button','btn ghost','☉ Biometrie auf diesem Gerät entfernen');
-    rm.onclick=async()=>{ if(!await askMaster('Biometrie entfernen – Master bestätigen.'))return; delete envelope.ownerBio; localStorage.setItem(ENV_STORE,JSON.stringify(envelope)); toast('Biometrie entfernt'); refreshBioUI(host); };
+    rm.onclick=async()=>{ if(!await askMaster('Biometrie entfernen – Master bestätigen.'))return; delete envelope.ownerBio; await saveEnvelope(); toast('Biometrie entfernt'); refreshBioUI(host); };
     host.appendChild(rm);
   }else{
     const p=el('p','qr-note');p.textContent='Verfügbar: Du kannst auf diesem Gerät Face ID / Fingerabdruck als zusätzliche Owner-Entsperrung einrichten. Gerätegebunden – ersetzt nicht das Master-Passwort.';
@@ -1857,13 +1983,127 @@ async function refreshBioUI(host){
       try{
         const bio=await bioRegister(vaultKey);
         envelope.ownerBio=bio;
-        localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
+        await saveEnvelope();
         toast('Biometrie eingerichtet');
       }catch(e){ toast('Biometrie fehlgeschlagen: '+(e.message||'nicht unterstützt')); }
       set.disabled=false;refreshBioUI(host);
     };
     host.appendChild(set);
   }
+}
+
+/* ---------- Nachlass-Freigabe (Shamir) – Owner-UI ---------- */
+function renderRecoveryUI(host){
+  host.innerHTML='';
+  host.appendChild(el('label',null,'Nachlass-Freigabe · Zugriff erst nach dem Tod (Shamir '+SSS_K+' von '+SSS_N+')'));
+  const info=el('p','qr-note');
+  info.innerHTML='Erzeugt '+SSS_N+' Wiederherstellungs-Teile; <strong>'+SSS_K+'</strong> davon genügen, um den Ordner zu öffnen – '
+    +'einzeln nutzlos. Verteile sie an Vertrauenspersonen (z. B. <strong>Notar + 2 Angehörige</strong>). '
+    +'Rein offline &amp; zero-knowledge; der „Tod" wird extern ausgelöst, indem die Berechtigten ihre Teile zusammenführen bzw. der Notar sie gegen Sterbeurkunde herausgibt.';
+  host.appendChild(info);
+
+  if(hasRecovery()){
+    const st=el('p','qr-note');st.style.color='var(--forest)';st.textContent='✓ Nachlass-Freigabe aktiv ('+SSS_K+' von '+SSS_N+' Teilen nötig).';
+    host.appendChild(st);
+  }
+  const row=el('div');row.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin-top:6px';
+  const genB=el('button','add-row',(hasRecovery()?'↻ Teile neu erzeugen':'⛨ Nachlass-Freigabe einrichten')+' (Master erforderlich)');
+  genB.style.borderStyle='solid';
+  genB.onclick=async()=>{
+    if(!await askMaster('Nachlass-Freigabe erzeugen – bitte Master-Passwort bestätigen.'))return;
+    if(hasRecovery() && !confirm('Neue Teile erzeugen? Bereits verteilte alte Teile verlieren damit ihre Gültigkeit.'))return;
+    genB.disabled=true;genB.textContent='… erzeuge';
+    try{
+      const shares=await createRecoveryShares();
+      showShares(host, shares);
+      renderRecoveryUI(host);   // Status aktualisieren (Panel unten neu zeichnen → Anzeige bleibt via showShares)
+    }catch(e){ toast('Fehler: '+(e.message||e)); genB.disabled=false; }
+  };
+  row.appendChild(genB);
+  if(hasRecovery()){
+    const rm=el('button','btn ghost','Nachlass-Freigabe entfernen');
+    rm.onclick=async()=>{
+      if(!await askMaster('Nachlass-Freigabe entfernen – bitte Master-Passwort bestätigen.'))return;
+      if(!confirm('Nachlass-Freigabe entfernen? Bereits verteilte Teile öffnen den Ordner dann nicht mehr.'))return;
+      await removeRecovery(); toast('Nachlass-Freigabe entfernt'); renderRecoveryUI(host);
+    };
+    row.appendChild(rm);
+  }
+  host.appendChild(row);
+}
+function showShares(host, shares){
+  const box=el('div');box.style.cssText='margin-top:12px;border:1px solid var(--forest);border-radius:8px;padding:14px;background:color-mix(in srgb,var(--forest) 7%,var(--panel))';
+  const warn=el('p','qr-note','<strong>'+shares.length+' Teile erzeugt – jetzt drucken/notieren und getrennt verwahren.</strong> Sie werden aus Sicherheitsgründen nicht gespeichert und sind später nicht erneut abrufbar.');
+  warn.style.color='var(--danger)';
+  box.appendChild(warn);
+  shares.forEach((s,i)=>{
+    const r=el('div');r.style.cssText='display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap';
+    const code=el('code');code.textContent='Teil '+(i+1)+'/'+shares.length+':  '+s;
+    code.style.cssText='font-family:"JetBrains Mono",monospace;font-size:.76rem;word-break:break-all;flex:1;min-width:220px;color:var(--ink)';
+    const cp=el('button','btn ghost','Kopieren');cp.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(s);toast('Teil '+(i+1)+' kopiert');};
+    const pr=el('button','btn ghost','Drucken');pr.onclick=()=>printShareDoc(i+1, shares.length, SSS_K, s);
+    r.appendChild(code);r.appendChild(cp);r.appendChild(pr);
+    box.appendChild(r);
+  });
+  host.appendChild(box);
+}
+
+/* ---------- Druckbares Teil-Dokument (für Notar / Vertrauensperson) ---------- */
+function printShareDoc(index, total, threshold, shareStr){
+  const safe=s=>(s||'').toString().replace(/[<>&]/g,'');
+  const heute=new Date().toLocaleDateString('de-DE',{day:'2-digit',month:'long',year:'numeric'});
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>Nachlass-Freigabe · Teil ${index}/${total}</title>
+  <style>
+    body{font-family:'Inter',Arial,sans-serif;color:#223338;max-width:720px;margin:48px auto;padding:0 40px;line-height:1.7}
+    h1{font-size:1.25rem;border-bottom:2px solid #276E75;padding-bottom:10px;color:#1F5B62}
+    .meta{font-size:.8rem;color:#566E74;margin:6px 0 24px}
+    .share{font-family:'JetBrains Mono',monospace;font-size:.95rem;word-break:break-all;background:#F2F5F4;border:1px solid #CBD9D7;border-radius:6px;padding:16px;margin:16px 0}
+    .note{font-size:.85rem;color:#535B48;border-top:1px solid #CBD9D7;padding-top:14px;margin-top:26px}
+    .sign{display:flex;gap:50px;margin-top:50px}
+    .sign div{flex:1;border-top:1px solid #223338;padding-top:8px;font-size:.78rem;color:#535B48}
+    @media print{body{margin:0;padding:30px 50px}}
+  </style></head><body>
+  <h1>Digitaler Nachlassordner — Wiederherstellungs-Teil ${index} von ${total}</h1>
+  <div class="meta">Erstellt am ${heute}</div>
+  <p>Dies ist <strong>ein</strong> von ${total} Teilen der Nachlass-Freigabe. Zum Öffnen des Ordners
+  müssen <strong>${threshold} der ${total} Teile</strong> zusammengeführt werden. Ein einzelnes Teil ist nutzlos
+  und gibt keinerlei Daten preis.</p>
+  <div class="share">${safe(shareStr)}</div>
+  <p class="note">Verwahren Sie dieses Teil sicher und getrennt von den anderen (z. B. Notar, Bankschließfach,
+  Angehörige). Nach dem Ableben der/des Ordner-Inhabenden führen die berechtigten Personen ${threshold} Teile
+  zusammen und geben sie unter „Mit Nachlass-Teilen entsperren" ein. Dieses Dokument ersetzt keine Rechtsberatung.</p>
+  <div class="sign"><div>Ort, Datum</div><div>Verwahrt durch (Name)</div></div>
+  <script>setTimeout(()=>window.print(),400);<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+/* ---------- Recovery-Entsperrung am Gate (≥K Teile) ---------- */
+function wireRecoveryUnlock(openUp){
+  if(!hasRecovery()) return;
+  const card=document.querySelector('#gate .gate-card'); if(!card) return;
+  if(document.getElementById('gateRecBtn')) return;
+  const btn=el('button','bio-btn','⛨ Mit Nachlass-Teilen entsperren');btn.id='gateRecBtn';btn.style.marginTop='8px';
+  const panel=el('div');panel.style.cssText='display:none;margin-top:10px';
+  const ta=el('textarea');ta.placeholder='Pro Zeile ein Teil (mind. '+SSS_K+'), Format  1-ab12…';
+  ta.style.cssText='width:100%;min-height:90px;font-family:"JetBrains Mono",monospace;font-size:.78rem;padding:10px;border:1px solid var(--field-line);border-radius:4px;background:var(--field-bg);color:var(--field-ink)';
+  const go=el('button','btn','Teile zusammenführen & entsperren');go.style.marginTop='8px';
+  const msg=el('div','msg');
+  panel.appendChild(ta);panel.appendChild(go);panel.appendChild(msg);
+  btn.onclick=()=>{ panel.style.display = panel.style.display==='none'?'block':'none'; ta.focus(); };
+  go.onclick=async()=>{
+    msg.style.color='var(--danger)';msg.textContent='';
+    const parts=ta.value.split(/[\n;]+/).map(s=>s.trim()).filter(Boolean);
+    if(parts.length<SSS_K){ msg.textContent='Mindestens '+SSS_K+' Teile nötig.'; return; }
+    go.disabled=true;go.textContent='… prüfe';
+    try{
+      const res=await unlockWithShares(envelope, parts);
+      if(res){ openUp(res); } else { msg.textContent='Teile passen nicht zusammen oder sind ungültig.'; }
+    }catch(e){ msg.textContent='Fehler: '+(e.message||e); }
+    go.disabled=false;go.textContent='Teile zusammenführen & entsperren';
+  };
+  card.appendChild(btn);card.appendChild(panel);
 }
 
 async function changeRcptPw(r,redraw){
@@ -1875,7 +2115,7 @@ async function changeRcptPw(r,redraw){
   const idx=envelope.recipients.indexOf(r);
   const slot=await wrapDEK(vaultKey,np); slot.name=r.name; slot.owner=r.owner; slot.id=r.id;
   envelope.recipients[idx]=slot;
-  localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
+  await saveEnvelope();
   toast('Passwort geändert – notieren: '+np);redraw();
 }
 async function removeRcpt(r,redraw){
@@ -1883,7 +2123,7 @@ async function removeRcpt(r,redraw){
   if(!await askMaster('Empfänger „'+r.name+'" entfernen – bitte Master-Passwort bestätigen.'))return;
   if(!confirm('Empfänger „'+r.name+'" entfernen? Dessen Passwort öffnet den Ordner dann nicht mehr.'))return;
   envelope.recipients=envelope.recipients.filter(x=>x!==r);
-  localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
+  await saveEnvelope();
   toast('Empfänger entfernt');redraw();
 }
 
@@ -2162,7 +2402,7 @@ async function saveData(){
     data=collect();
     const content=await encryptContent(vaultKey,data);
     envelope={...envelope,v:1,protected:true,content};
-    localStorage.setItem(ENV_STORE,JSON.stringify(envelope));
+    await saveEnvelope();
     const blob=new Blob([JSON.stringify(envelope,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');const d=new Date().toISOString().slice(0,10);
@@ -2178,12 +2418,12 @@ async function saveData(){
 function importData(e){
   const file=e.target.files[0];if(!file)return;
   const r=new FileReader();
-  r.onload=ev=>{
+  r.onload=async ev=>{
     try{
       const obj=JSON.parse(ev.target.result);
       if(obj && obj.protected && Array.isArray(obj.recipients)){
-        // verschlüsselter Umschlag: übernehmen und neu laden -> Gatekeeper fragt Passwort
-        localStorage.setItem(ENV_STORE,JSON.stringify(obj));
+        // verschlüsselter Umschlag: in die DB übernehmen und neu laden -> Gatekeeper fragt Passwort
+        envelope=obj; await saveEnvelope();
         localStorage.removeItem(STORE);
         toast('Verschlüsselte Sicherung geladen – bitte Passwort eingeben');
         setTimeout(()=>location.reload(),700);
@@ -2267,9 +2507,9 @@ function boot(){
   if(typeof window.__demoStart === 'function'){ window.__demoStart(); return; }
   bootNormal();
 }
-function bootNormal(){
-  if(isProtected()){
-    try{ envelope = JSON.parse(localStorage.getItem(ENV_STORE)); }catch(e){ envelope=null; }
+async function bootNormal(){
+  envelope = await loadEnvelope();   // aus der verschlüsselten DB (mit Migration aus localStorage)
+  if(envelope){
     document.body.classList.add('locked');
     const gp=document.getElementById('gatePass'), gm=document.getElementById('gateMsg'), gb=document.getElementById('gateBtn'), gbio=document.getElementById('gateBioBtn');
     const openUp=(res)=>{ vaultKey=res.dek; data=res.data||{}; document.body.classList.remove('locked'); gp.value=''; render(); };
@@ -2285,6 +2525,8 @@ function bootNormal(){
     gb.onclick=doUnlock;
     gp.onkeydown=e=>{if(e.key==='Enter')doUnlock();};
     setTimeout(()=>gp.focus(),100);
+    // Recovery-Entsperrung (Shamir) anbieten, falls Recovery-Slot vorhanden
+    wireRecoveryUnlock(openUp);
     // Biometrie anbieten, falls Owner-Bio hinterlegt & Umgebung passt
     (async()=>{
       if(envelope&&envelope.ownerBio&&await bioAvailable()){
